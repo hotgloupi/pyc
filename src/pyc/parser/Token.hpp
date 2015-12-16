@@ -3,15 +3,16 @@
 #include <iosfwd>
 
 namespace pyc { namespace parser {
-
     enum class Token
     {
-        eof,
-        eol,
-        def,
+        newline,
+        indent,
+        dedent,
         identifier,
-        string,
-        number,
+        keyword,
+        literal,
+        operator_,
+        delimiter,
     };
 
     std::ostream& operator <<(std::ostream& out, Token tok);

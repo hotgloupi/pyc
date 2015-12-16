@@ -9,12 +9,14 @@ namespace pyc { namespace parser {
         switch (tok)
         {
 #define CASE(name) case Token::name: return out << "Token::" #name;
-        CASE(eof);
-        CASE(eol);
-        CASE(def);
+        CASE(newline);
+        CASE(indent);
+        CASE(dedent);
         CASE(identifier);
-        CASE(string);
-        CASE(number);
+        CASE(keyword);
+        CASE(literal);
+        CASE(operator_);
+        CASE(delimiter);
         }
         std::abort();
     }
