@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 
 namespace io = boost::iostreams;
 
@@ -29,26 +30,36 @@ namespace pyc {
     {
         if (_options.interpreter)
         {
-            std::cout << "COUCOUDSSDS\n";
-            io::file_descriptor_source in(STDIN_FILENO, io::never_close_handle);
-            std::cout << "COsUCOUDSSDS\n";
-            io::stream<io::file_descriptor_source> stream(in);
-            std::cout << "CsasaOsUCOUDSSDS\n";
+            //io::file_descriptor_source in(STDIN_FILENO, io::never_close_handle);
+            //io::stream<io::file_descriptor_source> stream(in);
             while (true)
             {
+
                 std::cout << ">> ";
                 std::cout.flush();
-                parser::Source source(stream);
-                parser::Lexer lex(source);
-                parser::Token tok;
-                parser::SourceRange range;
-                while (lex.next_token(tok, range))
+                std::string line;
+                if (!std::getline(std::cin, line)) return;
+
+                line.append("\n");
+                std::stringstream ss(line);
+                parser::Lexer::Stack stack;
+                parser::Source source(ss);
+                parser::Lexer lex(source, parser::Lexer::Mode::single);
+
+                if (lex.parse(stack))
                 {
-                    std::cout << "Got" << tok << "\n";
-                    if (tok == parser::Token::eof)
-                        return;
+                    for (auto& e: stack)
+                    {
+                        std::cout << ">>>>>>>>>>>>>>>>>>> Got " << e.first << "\n";
+                        if (e.first == parser::Token::eof)
+                            return;
+                    }
+                    //std::cout << ".. ";
+                    //std::cout.flush();
                 }
-                std::cout << "PLOUF\n";
+                else
+                    std::cerr << "WAT?\n";
+                std::cerr << "************************************************\n";
             }
         }
 

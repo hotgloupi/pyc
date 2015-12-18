@@ -3,39 +3,126 @@
 #include "SourceRange.hpp"
 #include "Token.hpp"
 
+#include <vector>
+#include <cassert>
+#include <iostream>
+
 namespace pyc { namespace parser {
 
-#define PARSER(name) bool parse_##name(Token& tok, SourceRange& range)
-#define PARSER_DECL(name) bool parse_##name(Token& tok, SourceRange& range)
-#define PARSE(name) parse_##name(tok, range)
+    typedef std::vector<std::pair<Token, SourceRange>> Stack;
 
-#define TERMINAL_PARSER(name, token) PARSER(name)
+#define PARSER(name)                                                    \
+    static bool parse_##name##_body(Stack& stack, SourceLocation& loc); \
+    static bool parse_##name(Stack& stack, SourceLocation& loc)         \
+    {                                                                   \
+        SourceLocation old = loc;                                       \
+        auto stack_size = stack.size();                                 \
+        if (!parse_##name##_body(stack, loc)) {                         \
+            loc = old;                                                  \
+            assert(stack_size <= stack.size());                         \
+            stack.resize(stack_size);                                   \
+            std::cerr << "Couldn't read a " #name << std::endl;         \
+            return false;                                               \
+        }                                                               \
+        std::cerr << "Got " #name << std::endl;                         \
+        return true;                                                    \
+    }                                                                   \
+    static bool parse_##name##_body(Stack& stack, SourceLocation& loc)
 
-    bool parse_string(Token&, SourceRange&, char const* str);
-#define PARSE_STR(str) parse_string(tok, range, str)
+#define PARSER_DECL(name) \
+    static bool parse_##name(Stack& stack, SourceLocation& loc)
+#define PARSE(name) parse_##name(stack, loc)
+
+#define TERMINAL_PARSER(name, token)                                 \
+    static bool parse_terminal_##name##_body(                        \
+      Stack& stack, SourceLocation& loc);                            \
+    PARSER(name)                                                     \
+    {                                                                \
+        SourceLocation old = loc;                                    \
+        if (parse_terminal_##name##_body(stack, loc)) {              \
+            stack.emplace_back(Token::token, SourceRange{old, loc}); \
+            if (Token::token != Token::newline)                      \
+                while (*loc == ' ') ++loc;                           \
+            return true;                                             \
+        }                                                            \
+        return false;                                                \
+    }                                                                \
+    static bool parse_terminal_##name##_body(Stack& stack, SourceLocation& loc)
+
+    static bool parse_string(SourceLocation& loc, char const* str)
+    {
+        SourceLocation old = loc;
+        assert(str != nullptr);
+        while (*str != '\0' && *str == *loc)
+        {
+            str++;
+            loc++;
+        }
+        if (*str != '\0')
+        {
+            loc = old;
+            return false;
+        }
+        return true;
+    }
+
+#define PARSE_STR(str) parse_string(loc, str)
 
 #define TERMINAL_PARSER_STR(name, str, token) \
     TERMINAL_PARSER(name, token) { return PARSE_STR(str); }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 
-    TERMINAL_PARSER(NEWLINE, newline) {
-        return PARSE_STR("\r\n") || PARSE_STR("\r") || PARSE_STR("\n");
+    TERMINAL_PARSER(NEWLINE, newline)
+    {
+        if (PARSE_STR("\r") || PARSE_STR("\n"))
+        {
+            //while (PARSE_STR("\r") || PARSE_STR("\n")) {}
+            return true;
+        }
+        return false;
     }
 
     TERMINAL_PARSER(IDENTIFIER, identifier)
     {
-
+        auto start = loc;
+        while ((*loc >= 'a' && *loc <= 'z') || (*loc >= 'A' && *loc <= 'Z'))
+            ++loc;
+        return start != loc;
     }
 
     TERMINAL_PARSER(INDENT, indent)
     {
-
+        bool res = false;
+        while (PARSE_STR(" ") || PARSE_STR("\t")) res = true;
+        return res;
     }
 
     TERMINAL_PARSER(DEDENT, dedent)
     {
+        return true;
+    }
 
+    TERMINAL_PARSER(NUMBER, literal)
+    {
+        auto start = loc;
+        while (*loc >= '0' && *loc <= '9')
+            ++loc;
+        return start != loc;
+    }
+
+    TERMINAL_PARSER(STRING, literal)
+    {
+        if (*loc != '"') return false;
+        do ++loc; while (*loc != '"');
+        return *loc == '"';
+    }
+
+    TERMINAL_PARSER(ENDMARKER, eof)
+    {
+        return *loc == '\0';
     }
 
     TERMINAL_PARSER_STR(AT, "@", delimiter);
@@ -48,6 +135,10 @@ namespace pyc { namespace parser {
     TERMINAL_PARSER_STR(RARROW, "->", delimiter);
     TERMINAL_PARSER_STR(RPAR, ")", delimiter);
     TERMINAL_PARSER_STR(SEMICOLON, ";", delimiter);
+    TERMINAL_PARSER_STR(LSQUAREBRACKET, "[", delimiter);
+    TERMINAL_PARSER_STR(RSQUAREBRACKET, "]", delimiter);
+    TERMINAL_PARSER_STR(LBRACKET, "{", delimiter);
+    TERMINAL_PARSER_STR(RBRACKET, "}", delimiter);
 
     TERMINAL_PARSER_STR(AS, "as", keyword);
     TERMINAL_PARSER_STR(ASYNC, "async", keyword);
@@ -79,6 +170,9 @@ namespace pyc { namespace parser {
     TERMINAL_PARSER_STR(OR, "or", keyword);
     TERMINAL_PARSER_STR(AND, "and", keyword);
     TERMINAL_PARSER_STR(NOT, "not", keyword);
+    TERMINAL_PARSER_STR(AWAIT, "await", keyword);
+    TERMINAL_PARSER_STR(CLASS, "class", keyword);
+    TERMINAL_PARSER_STR(YIELD, "yield", keyword);
 
     TERMINAL_PARSER_STR(OP_OR, "|", operator_);
     TERMINAL_PARSER_STR(OP_XOR, "^", operator_);
@@ -87,7 +181,32 @@ namespace pyc { namespace parser {
     TERMINAL_PARSER_STR(OP_LSHIFT, "<<", operator_);
     TERMINAL_PARSER_STR(OP_ADD, "+", operator_);
     TERMINAL_PARSER_STR(OP_SUB, "-", operator_);
+    TERMINAL_PARSER_STR(OP_MUL, "*", operator_);
+    TERMINAL_PARSER_STR(OP_MATMUL, "@", operator_);
+    TERMINAL_PARSER_STR(OP_DIV, "/", operator_);
+    TERMINAL_PARSER_STR(OP_MOD, "%", operator_);
+    TERMINAL_PARSER_STR(OP_TRUEDIV, "//", operator_);
+    TERMINAL_PARSER_STR(OP_NOT, "~", operator_);
+    TERMINAL_PARSER_STR(OP_POW, "**", operator_);
 
+    TERMINAL_PARSER_STR(NONE, "None", identifier);
+    TERMINAL_PARSER_STR(TRUE, "True", identifier);
+    TERMINAL_PARSER_STR(FALSE, "False", identifier);
+
+    PARSER_DECL(yield_arg);
+    PARSER_DECL(argument);
+    PARSER_DECL(comp_if);
+    PARSER_DECL(sliceop);
+    PARSER_DECL(subscript);
+    PARSER_DECL(subscriptlist);
+    PARSER_DECL(comp_for);
+    PARSER_DECL(dictorsetmaker);
+    PARSER_DECL(testlist_comp);
+    PARSER_DECL(atom);
+    PARSER_DECL(trailer);
+    PARSER_DECL(atom_expr);
+    PARSER_DECL(power);
+    PARSER_DECL(factor);
     PARSER_DECL(arith_expr);
     PARSER_DECL(term);
     PARSER_DECL(shift_expr);
@@ -870,45 +989,226 @@ namespace pyc { namespace parser {
     }
 
     // term: factor (('*'|'@'|'/'|'%'|'//') factor)*
-    PARSER(term) {}
+    PARSER(term)
+    {
+        if (!PARSE(factor)) return false;
+        while (PARSE(OP_MUL) || PARSE(OP_MATMUL) || PARSE(OP_DIV) ||
+               PARSE(OP_MOD) || PARSE(OP_TRUEDIV))
+        {
+            if (!PARSE(factor)) return false;
+        }
+        return true;
+    }
+
     // factor: ('+'|'-'|'~') factor | power
-    PARSER(factor) {}
+    PARSER(factor)
+    {
+        if (PARSE(OP_ADD) || PARSE(OP_SUB) || PARSE(OP_NOT))
+            return PARSE(factor);
+        return PARSE(power);
+    }
+
     // power: atom_expr ['**' factor]
-    PARSER(power) {}
+    PARSER(power)
+    {
+        if (!PARSE(atom_expr)) return false;
+        if (PARSE(OP_POW)) return PARSE(factor);
+        return true;
+    }
+
     // atom_expr: [AWAIT] atom trailer*
-    PARSER(atom_expr) {}
+    PARSER(atom_expr)
+    {
+        PARSE(AWAIT);
+        if (!PARSE(atom)) return false;
+        while (PARSE(trailer)) {}
+        return true;
+    }
+
     // atom: ('(' [yield_expr|testlist_comp] ')' |
     //       '[' [testlist_comp] ']' |
     //       '{' [dictorsetmaker] '}' |
     //       NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False')
-    PARSER(atom) {}
+    PARSER(atom)
+    {
+        if (PARSE(LPAR))
+        {
+            if (!PARSE(yield_expr)) PARSE(testlist_comp);
+            return PARSE(RPAR);
+        }
+        else if (PARSE(LSQUAREBRACKET))
+        {
+            PARSE(testlist_comp);
+            return PARSE(RSQUAREBRACKET);
+        }
+        else if (PARSE(LBRACKET))
+        {
+            PARSE(dictorsetmaker);
+            return PARSE(RBRACKET);
+        }
+        else if (PARSE(STRING))
+        {
+            while (PARSE(STRING)) {}
+            return true;
+        }
+        return PARSE(IDENTIFIER) || PARSE(NUMBER) || PARSE(ELLIPSIS) ||
+               PARSE(NONE) || PARSE(TRUE) || PARSE(FALSE);
+    }
+
     // testlist_comp: (test|star_expr) ( comp_for | (',' (test|star_expr))*
     // [','] )
-    PARSER(testlist_comp) {}
+    PARSER(testlist_comp)
+    {
+        if (!(PARSE(test) || PARSE(star_expr))) return false;
+        while (true)
+        {
+            if (PARSE(comp_for)) continue;
+            if (PARSE(COMMA)) {
+                if (!(PARSE(test) || PARSE(star_expr))) return false;
+                continue;
+            }
+            break;
+        }
+        PARSE(COMMA);
+        return true;
+    }
+
     // trailer: '(' [arglist] ')' | '[' subscriptlist ']' | '.' NAME
-    PARSER(trailer) {}
+    PARSER(trailer)
+    {
+        if (PARSE(LPAR))
+        {
+            PARSE(arglist);
+            return PARSE(RPAR);
+        }
+        else if (PARSE(LSQUAREBRACKET))
+        {
+            return PARSE(subscriptlist) && PARSE(RSQUAREBRACKET);
+        }
+        return PARSE(DOT) && PARSE(IDENTIFIER);
+    }
+
     // subscriptlist: subscript (',' subscript)* [',']
-    PARSER(subscriptlist) {}
+    PARSER(subscriptlist)
+    {
+        if (!PARSE(subscript)) return false;
+        while (PARSE(COMMA))
+        {
+            if (!PARSE(subscript)) break;
+        }
+        return true;
+    }
+
     // subscript: test | [test] ':' [test] [sliceop]
-    PARSER(subscript) {}
+    PARSER(subscript)
+    {
+        if (PARSE(test))
+        {
+            if (!PARSE(COLON)) return true;
+        }
+        else
+        {
+            if (!PARSE(COLON)) return false;
+        }
+        PARSE(test);
+        PARSE(sliceop);
+        return true;
+    }
+
     // sliceop: ':' [test]
-    PARSER(sliceop) {}
+    PARSER(sliceop)
+    {
+        if (PARSE(COLON)) {
+            PARSE(test);
+            return true;
+        }
+        return false;
+    }
+
     // exprlist: (expr|star_expr) (',' (expr|star_expr))* [',']
-    PARSER(exprlist) {}
+    PARSER(exprlist)
+    {
+        if (!(PARSE(expr) || PARSE(star_expr))) return false;
+        while (PARSE(COMMA))
+        {
+            if (!(PARSE(expr) || PARSE(star_expr))) break;
+        }
+        return true;
+    }
+
     // testlist: test (',' test)* [',']
-    PARSER(testlist) {}
+    PARSER(testlist)
+    {
+        if (!PARSE(test)) return false;
+        while (PARSE(COMMA)) if (!PARSE(test)) break;
+        return true;
+    }
+
     // dictorsetmaker: ( ((test ':' test | '**' expr)
-    //                   (comp_for | (',' (test ':' test | '**' expr))*
-    //                   [','])) |
+    //                   (comp_for | (',' (test ':' test | '**' expr))* [',']))
+    //                 |
     //                  ((test | star_expr)
     //                   (comp_for | (',' (test | star_expr))* [','])) )
     //
-    PARSER(dictorsetmaker) {}
+    PARSER(dictorsetmaker_first)
+    {
+        if (PARSE(test)) {
+            if (!(PARSE(COLON) && PARSE(test))) return false;
+        }
+        else if (!(PARSE(POW) && PARSE(expr)))
+            return false;
+        if (PARSE(comp_for)) return true;
+        while (PARSE(COMMA)) {
+            if (PARSE(test)) {
+                if (!(PARSE(COLON) && PARSE(test))) return false;
+            }
+            else if (PARSE(POW))
+            {
+                if (!PARSE(expr)) return false;
+            }
+            else break;
+        }
+        return true;
+    }
+
+    PARSER(dictorsetmaker_second)
+    {
+        if (!(PARSE(test) | PARSE(star_expr))) return false;
+        if (PARSE(comp_for)) return true;
+        while (PARSE(COMMA))
+        {
+            if (PARSE(test) || PARSE(star_expr)) continue;
+            break;
+        }
+        return true;
+    }
+
+    PARSER(dictorsetmaker)
+    {
+        return PARSE(dictorsetmaker_first) || PARSE(dictorsetmaker_second);
+    }
+
     // classdef: 'class' NAME ['(' [arglist] ')'] ':' suite
-    PARSER(classdef) {}
-    //
+    PARSER(classdef)
+    {
+        if (!(PARSE(CLASS) && PARSE(IDENTIFIER))) return false;
+        if (PARSE(LPAR))
+        {
+            PARSE(arglist);
+            if (!PARSE(RPAR)) return false;
+        }
+        return PARSE(COLON) && PARSE(suite);
+    }
+
     // arglist: argument (',' argument)*  [',']
-    PARSER(arglist) {}
+    PARSER(arglist)
+    {
+        if (!PARSE(argument)) return false;
+        while (PARSE(COMMA))
+            if (!PARSE(argument)) break;
+        return true;
+    }
+
     //
     //# The reason that keywords are test nodes instead of NAME is that
     //using NAME
@@ -926,58 +1226,105 @@ namespace pyc { namespace parser {
     //            test '=' test |
     //            '**' test |
     //            '*' test )
-    PARSER(argument) {}
-    //
-    // comp_iter: comp_for | comp_if
-    PARSER(comp_iter) {}
-    // comp_for: 'for' exprlist 'in' or_test [comp_iter]
-    PARSER(comp_for) {}
-    // comp_if: 'if' test_nocond [comp_iter]
-    PARSER(comp_if) {}
-    //
-    //# not used in grammar, but may appear in "node" passed from Parser to
-    //Compiler
-    // encoding_decl: NAME
-    PARSER(encoding_decl) {}
-    //
-    // yield_expr: 'yield' [yield_arg]
-    PARSER(yield_expr) {}
-    // yield_arg: 'from' test | testlist
-    PARSER(yield_arg) {}
-
-    // single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
-    PARSER(single_input) { return parse_simple_stmt(tok, range); }
-
-    // file_input: (NEWLINE | stmt)* ENDMARKER
-    PARSER(file_input) {}
-
-    // eval_input: testlist NEWLINE* ENDMARKER
-    PARSER(eval_input) {}
-
-    Lexer::Lexer(Source& source) : _source(source), _current(_source.begin()) {}
-    bool Lexer::next_token(Token& tok, SourceRange& range)
+    PARSER(argument)
     {
-    restart:
-        range.begin = _current;
-        if (_current == _source.end()) range.end = _current;
-        switch (*_current++)
+        if (PARSE(test))
         {
-        case '\0':
-            tok = Token::eof;
-            return true;
-
-        case ' ':
-        case '\t':
-        case '\f':
-        case '\v':
-            _current++;
-            goto restart;
-        case '\n':
-            tok = Token::eol;
+            if (PARSE(EQ)) return PARSE(test);
+            PARSE(comp_for);
             return true;
         }
-
+        if (PARSE(POW) || PARSE(MUL)) return PARSE(test);
         return false;
     }
 
+    // comp_iter: comp_for | comp_if
+    PARSER(comp_iter) {return PARSE(comp_for) || PARSE(comp_if); };
+
+    // comp_for: 'for' exprlist 'in' or_test [comp_iter]
+    PARSER(comp_for)
+    {
+        if (PARSE(FOR) && PARSE(exprlist) && PARSE(IN) && PARSE(or_test))
+        {
+            PARSE(comp_iter);
+            return true;
+        }
+        return false;
+    }
+
+    // comp_if: 'if' test_nocond [comp_iter]
+    PARSER(comp_if)
+    {
+        if (PARSE(IF) && PARSE(test_nocond))
+        {
+            PARSE(comp_iter);
+            return true;
+        }
+        return false;
+    }
+
+
+    //# not used in grammar, but may appear in "node" passed from Parser to
+    //Compiler
+    // encoding_decl: NAME
+    PARSER(encoding_decl) { return PARSE(IDENTIFIER); }
+    //
+    // yield_expr: 'yield' [yield_arg]
+    PARSER(yield_expr)
+    {
+        if (PARSE(YIELD))
+        {
+            PARSE(yield_arg);
+            return true;
+        }
+        return false;
+    }
+
+    // yield_arg: 'from' test | testlist
+    PARSER(yield_arg)
+    {
+        if (PARSE(FROM)) return PARSE(test);
+        return PARSE(testlist);
+    }
+
+    // single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
+    PARSER(single_input)
+    {
+        return PARSE(NEWLINE) || PARSE(simple_stmt) ||
+               (PARSE(compound_stmt) && PARSE(NEWLINE));
+    }
+
+    // file_input: (NEWLINE | stmt)* ENDMARKER
+    PARSER(file_input)
+    {
+        while (PARSE(NEWLINE) || PARSE(stmt)) {}
+        return PARSE(ENDMARKER);
+    }
+
+    // eval_input: testlist NEWLINE* ENDMARKER
+    PARSER(eval_input)
+    {
+        if (!PARSE(testlist)) return false;
+        while (PARSE(NEWLINE)) {}
+        return PARSE(ENDMARKER);
+    }
+
+#pragma GCC diagnostic pop
+
+
+    Lexer::Lexer(Source& source, Mode mode)
+        : _mode(mode), _source(source), _current(_source.begin())
+    {}
+
+    bool Lexer::parse(Stack& stack)
+    {
+        stack.clear();
+        switch (_mode)
+        {
+        case Mode::file: return parse_file_input(stack, _current);
+        case Mode::eval: return parse_eval_input(stack, _current);
+        case Mode::single: return parse_single_input(stack, _current);
+        }
+        std::abort();
+    }
 }}

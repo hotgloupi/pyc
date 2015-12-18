@@ -11,19 +11,12 @@ namespace pyc { namespace parser {
     SourceLocation::SourceLocation(Source& source, u64 cursor)
       : _source(&source)
       , _cursor(cursor)
-    {
-        assert(_cursor != SourceLocation::end_cursor);
-        if (!_source->pop(_value))
-            _cursor = SourceLocation::end_cursor;
-    }
+    {}
 
     void SourceLocation::increment()
     {
         assert(_cursor != SourceLocation::end_cursor);
-        if (_source->pop(_value))
-            _cursor += 1;
-        else
-            _cursor = SourceLocation::end_cursor;
+        _cursor += 1;
     }
 
     bool SourceLocation::equal(SourceLocation const& other) const
@@ -33,9 +26,15 @@ namespace pyc { namespace parser {
       return _cursor == other._cursor;
     }
 
-    char const& SourceLocation::dereference() const
+    char SourceLocation::dereference() const
     {
-        return _value;
+        char value;
+        if (!_source->get(_cursor, value))
+        {
+            _cursor = SourceLocation::end_cursor;
+            return '\0';
+        }
+        return value;
     }
 
 }}

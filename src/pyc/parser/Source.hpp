@@ -1,8 +1,10 @@
 #pragma once
 
 #include <pyc/parser/fwd.hpp>
+#include <pyc/inttypes.hpp>
 
 #include <iosfwd>
+#include <string>
 
 namespace pyc { namespace parser {
 
@@ -12,16 +14,17 @@ namespace pyc { namespace parser {
         typedef SourceLocation Location;
     private:
         std::istream& _input;
+        std::string _buffer;
 
     public:
-        Source(std::istream& input);
+        explicit Source(std::istream& input);
 
     public:
         Location begin();
         Location end() const;
 
     public:
-        bool pop(char& out);
+        bool get(u64 pos, char& out);
     };
 
 }}

@@ -10,14 +10,14 @@
 namespace pyc { namespace parser {
 
     class SourceLocation
-        : public boost::iterator_facade<SourceLocation, char const, std::forward_iterator_tag>
+      : public boost::iterator_facade<
+          SourceLocation, char const, std::forward_iterator_tag>
     {
     public:
         static u64 const end_cursor = std::numeric_limits<u64>::max();
     private:
         Source* _source = nullptr;
-        u64 _cursor = end_cursor;
-        char _value = '\0';
+        u64 mutable _cursor = end_cursor;
 
     public:
         SourceLocation();
@@ -28,7 +28,7 @@ namespace pyc { namespace parser {
 
         void increment();
         bool equal(SourceLocation const& other) const;
-        char const& dereference() const;
+        char dereference() const;
     };
 
 }}

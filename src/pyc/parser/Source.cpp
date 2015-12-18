@@ -18,14 +18,24 @@ namespace pyc { namespace parser {
     Source::Location Source::end() const
     { return Location(); }
 
-    bool Source::pop(char& out)
+    bool Source::get(u64 pos, char& out)
     {
-        auto res = io::get(_input);
-        if (res == EOF)
-            return false;
-        if (res == io::WOULD_BLOCK)
-            return false;
-        out = res;
+        while (_buffer.size() <= pos)
+        {
+            //std::cout << "Read at " << pos << std::endl;
+            auto res = io::get(_input);
+            if (res == EOF)
+            {
+                //std::cerr << "################# EOF!\n";
+                return false;
+                }
+            if (res == io::WOULD_BLOCK)
+                continue;// return false;
+            _buffer.push_back(res);
+        }
+        out = _buffer.at(pos);
+        //std::cout << "stdin[" << pos << "] = " << out << std::endl;
+
         return true;
     }
 

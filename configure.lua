@@ -25,6 +25,6 @@ return function(build)
         name = 'pyc',
         sources = {'src/main.cpp'},
         include_directories = {'src'},
-        libraries = {lib},
+        libraries = table.extend({lib}, boost),
     }
 end

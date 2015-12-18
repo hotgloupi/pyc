@@ -5,6 +5,7 @@
 namespace pyc { namespace parser {
     enum class Token
     {
+        eof,
         newline,
         indent,
         dedent,
