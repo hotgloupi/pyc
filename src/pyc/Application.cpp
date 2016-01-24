@@ -7,6 +7,7 @@
 
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <vector>
 #include <string>
@@ -34,14 +35,33 @@ namespace pyc {
             //io::stream<io::file_descriptor_source> stream(in);
             while (true)
             {
-
                 std::cout << ">> ";
                 std::cout.flush();
-                std::string line;
-                if (!std::getline(std::cin, line)) return;
+                bool block = false;
+                std::string str;
+                do {
+                    if (block)
+                    {
+                        std::cout << ".. ";
+                        std::cout.flush();
+                    }
+                    std::string line;
+                    if (!std::getline(std::cin, line)) return;
+                    if (line.empty())
+                    {
+                        if (!str.empty()) str.append("\n");
+                        break;
+                    }
+                    if (boost::ends_with(line, ":"))
+                        block = true;
+                    str += line;
+                    str.append("\n");
+                } while (block);
 
-                line.append("\n");
-                std::stringstream ss(line);
+                if (str.empty())
+                    continue;
+
+                std::stringstream ss(str);
                 parser::Lexer::Stack stack;
                 parser::Source source(ss);
                 parser::Lexer lex(source, parser::Lexer::Mode::single);
@@ -58,8 +78,8 @@ namespace pyc {
                     //std::cout.flush();
                 }
                 else
-                    std::cerr << "WAT?\n";
-                std::cerr << "************************************************\n";
+                    std::cout << "WAT?\n";
+                std::cout << "************************************************\n";
             }
         }
 
