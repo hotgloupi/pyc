@@ -9,7 +9,9 @@ return function(build)
         compiler = cxx,
         build = build,
         components = {
-            'iostreams'
+            'iostreams',
+            'filesystem',
+            'system',
         },
     }
 

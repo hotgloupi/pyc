@@ -17,60 +17,76 @@ namespace pyc { namespace parser {
         std::vector<char const*> elements;
         void log(Stack& stack, char const* str)
         {
+//std::cout << std::string(elements.size(), ' ') << elements.back()
+//                  << ' ' << str << std::endl;
+            std::cout << str << ' ';
+            for (auto e: elements)
+                std::cout << e << ' ';
+            std::cout << std::endl << " --> ";
             for (auto& pair: stack)
-                std::cout << pair.first << ' ';
-            std::cout << std::string(elements.size(), ' ') << elements.back()
-                      << ' ';
-            // for (auto n: elements)
-            //    std::cout << n << " > ";
-            std::cout << str << std::endl;
+            {
+                if (pair.first == Token::name)
+                {
+                        std::cout
+                          << std::string(pair.second.begin, pair.second.end)
+                          << ' ';
+                }
+                else
+                    std::cout << pair.first << ' ';
+            }
+            std::cout << std::endl;
         }
 
-#define PARSER(name)                                                  \
-    bool parse_##name(Stack& stack, SourceLocation& loc)              \
-    {                                                                 \
-        SourceLocation old = loc;                                     \
-        auto stack_size = stack.size();                               \
-        indent += 1;                                                  \
-        elements.push_back(#name);                                    \
-        log(stack, "Enter");                                          \
-        if (!parse_##name##_body(stack, loc)) {                       \
-            loc = old;                                                \
-            assert(stack_size <= stack.size());                       \
-            stack.resize(stack_size);                                 \
-            log(stack, "Failed");                                     \
-            indent -= 1;                                              \
-            elements.pop_back();                                      \
-            return false;                                             \
-        }                                                             \
-        log(stack, "Succeed");                                        \
-        elements.pop_back();                                          \
-        indent -= 1;                                                  \
-        return true;                                                  \
-    }                                                                 \
+#define PARSER(name)                                     \
+    bool parse_##name(Stack& stack, SourceLocation& loc) \
+    {                                                    \
+        SourceLocation old = loc;                        \
+        auto stack_size = stack.size();                  \
+        indent += 1;                                     \
+        log(stack, ">>");                                     \
+        elements.push_back(#name);                       \
+        if (!parse_##name##_body(stack, loc)) {          \
+            loc = old;                                   \
+            assert(stack_size <= stack.size());          \
+            stack.resize(stack_size);                    \
+            indent -= 1;                                 \
+            log(stack, "EE");                                     \
+            elements.pop_back();                         \
+            return false;                                \
+        }                                                \
+            log(stack, "YY");                                     \
+        elements.pop_back();                             \
+        indent -= 1;                                     \
+        return true;                                     \
+    }                                                    \
     bool parse_##name##_body(Stack& stack, SourceLocation& loc)
 
 #define PARSER_DECL(name) bool parse_##name(Stack& stack, SourceLocation& loc)
 #define PARSE(name) parse_##name(stack, loc)
 
-#define TERMINAL_PARSER(name, token)                                  \
-    PARSER(name)                                                      \
-    {                                                                 \
-        SourceLocation old = loc;                                     \
-        if (parse_terminal_##name##_body(stack, loc)) {               \
-            stack.emplace_back(Token::token, SourceRange{old, loc});  \
-            if (Token::token != Token::newline)                       \
-                while (*loc == ' ') ++loc;                            \
-            return true;                                              \
-        }                                                             \
-        else                                                          \
-        {                                                             \
-            if (*loc == '\0') {                                       \
+#define TERMINAL_PARSER(name, token)                                      \
+    PARSER(name)                                                          \
+    {                                                                     \
+        SourceLocation old = loc;                                         \
+        log(stack, ">>>");                                     \
+        stack.emplace_back(Token::token, SourceRange{old, loc});          \
+        if (parse_terminal_##name##_body(stack, loc)) {                   \
+            stack.back().second.end = loc;                                \
+            if (Token::token != Token::newline)                           \
+                while (*loc == ' ') ++loc;                                \
+            log(stack, "YYY");                                     \
+            return true;                                                  \
+        }                                                                 \
+        else                                                              \
+        {                                                                 \
+            if (*loc == '\0') {                                           \
                 std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EOF\n"; \
-            }                                                         \
-        }                                                             \
-        return false;                                                 \
-    }                                                                 \
+            }                                                             \
+        }                                                                 \
+        stack.pop_back();                                                 \
+        log(stack, "EEE");                                    \
+        return false;                                                     \
+    }                                                                     \
     bool parse_terminal_##name##_body(Stack& stack, SourceLocation& loc)
 
         bool parse_string(SourceLocation& loc, char const* str)
@@ -149,14 +165,14 @@ namespace pyc { namespace parser {
             return true;
         }
 
-        TERMINAL_PARSER(NUMBER, literal)
+        TERMINAL_PARSER(NUMBER, number)
         {
             auto start = loc;
             while (*loc >= '0' && *loc <= '9') ++loc;
             return start != loc;
         }
 
-        TERMINAL_PARSER(STRING, literal)
+        TERMINAL_PARSER(STRING, string)
         {
             if (*loc != '"') return false;
             do
@@ -167,69 +183,68 @@ namespace pyc { namespace parser {
 
         TERMINAL_PARSER(ENDMARKER, eof) { return *loc == '\0'; }
 
-        TERMINAL_PARSER_STR(AT, "@", delimiter);
-        TERMINAL_PARSER_STR(COLON, ":", delimiter);
-        TERMINAL_PARSER_STR(COMMA, ",", delimiter);
-        TERMINAL_PARSER_STR(EQ, "=", delimiter);
-        TERMINAL_PARSER_STR(LPAR, "(", delimiter);
-        TERMINAL_PARSER_STR(MUL, "*", delimiter);
-        TERMINAL_PARSER_STR(POW, "**", delimiter);
-        TERMINAL_PARSER_STR(RARROW, "->", delimiter);
-        TERMINAL_PARSER_STR(RPAR, ")", delimiter);
-        TERMINAL_PARSER_STR(SEMICOLON, ";", delimiter);
-        TERMINAL_PARSER_STR(LSQUAREBRACKET, "[", delimiter);
-        TERMINAL_PARSER_STR(RSQUAREBRACKET, "]", delimiter);
-        TERMINAL_PARSER_STR(LBRACKET, "{", delimiter);
-        TERMINAL_PARSER_STR(RBRACKET, "}", delimiter);
+        TERMINAL_PARSER_STR(AT, "@", at);
+        TERMINAL_PARSER_STR(COLON, ":", colon);
+        TERMINAL_PARSER_STR(COMMA, ",", comma);
+        TERMINAL_PARSER_STR(EQ, "=", equal);
+        TERMINAL_PARSER_STR(LPAR, "(", lpar);
+        TERMINAL_PARSER_STR(MUL, "*", star);
+        TERMINAL_PARSER_STR(POW, "**", double_star);
+        TERMINAL_PARSER_STR(RARROW, "->", right_arrow);
+        TERMINAL_PARSER_STR(RPAR, ")", rpar);
+        TERMINAL_PARSER_STR(SEMICOLON, ";", semicolon);
+        TERMINAL_PARSER_STR(LSQUAREBRACKET, "[", lsqb);
+        TERMINAL_PARSER_STR(RSQUAREBRACKET, "]", rsqb);
+        TERMINAL_PARSER_STR(LBRACKET, "{", left_brace);
+        TERMINAL_PARSER_STR(RBRACKET, "}", right_brace);
 
-        TERMINAL_PARSER_STR(AS, "as", keyword);
-        TERMINAL_PARSER_STR(ASYNC, "async", keyword);
-        TERMINAL_PARSER_STR(BREAK, "break", keyword);
-        TERMINAL_PARSER_STR(CONTINUE, "continue", keyword);
-        TERMINAL_PARSER_STR(DEF, "def", keyword);
-        TERMINAL_PARSER_STR(DEL, "del", keyword);
-        TERMINAL_PARSER_STR(DOT, ".", keyword);
-        TERMINAL_PARSER_STR(ELLIPSIS, "...", keyword);
-        TERMINAL_PARSER_STR(FROM, "from", keyword);
-        TERMINAL_PARSER_STR(IMPORT, "import", keyword);
-        TERMINAL_PARSER_STR(PASS, "pass", keyword);
-        TERMINAL_PARSER_STR(RAISE, "raise", keyword);
-        TERMINAL_PARSER_STR(RETURN, "return", keyword);
-        TERMINAL_PARSER_STR(GLOBAL, "global", keyword);
-        TERMINAL_PARSER_STR(LOCAL, "local", keyword);
-        TERMINAL_PARSER_STR(ASSERT, "assert", keyword);
-        TERMINAL_PARSER_STR(IF, "if", keyword);
-        TERMINAL_PARSER_STR(ELIF, "elif", keyword);
-        TERMINAL_PARSER_STR(ELSE, "else", keyword);
-        TERMINAL_PARSER_STR(WHILE, "while", keyword);
-        TERMINAL_PARSER_STR(FOR, "for", keyword);
-        TERMINAL_PARSER_STR(IN, "in", keyword);
-        TERMINAL_PARSER_STR(TRY, "try", keyword);
-        TERMINAL_PARSER_STR(FINALLY, "finally", keyword);
-        TERMINAL_PARSER_STR(WITH, "with", keyword);
-        TERMINAL_PARSER_STR(EXCEPT, "except", keyword);
-        TERMINAL_PARSER_STR(LAMBDA, "lambda", keyword);
-        TERMINAL_PARSER_STR(OR, "or", keyword);
-        TERMINAL_PARSER_STR(AND, "and", keyword);
-        TERMINAL_PARSER_STR(NOT, "not", keyword);
-        TERMINAL_PARSER_STR(AWAIT, "await", keyword);
-        TERMINAL_PARSER_STR(CLASS, "class", keyword);
-        TERMINAL_PARSER_STR(YIELD, "yield", keyword);
+        TERMINAL_PARSER_STR(AS, "as", name);
+        TERMINAL_PARSER_STR(ASYNC, "async", name);
+        TERMINAL_PARSER_STR(BREAK, "break", name);
+        TERMINAL_PARSER_STR(CONTINUE, "continue", name);
+        TERMINAL_PARSER_STR(DEF, "def", name);
+        TERMINAL_PARSER_STR(DEL, "del", name);
+        TERMINAL_PARSER_STR(DOT, ".", dot);
+        TERMINAL_PARSER_STR(ELLIPSIS, "...", ellipsis);
+        TERMINAL_PARSER_STR(FROM, "from", name);
+        TERMINAL_PARSER_STR(IMPORT, "import", name);
+        TERMINAL_PARSER_STR(PASS, "pass", name);
+        TERMINAL_PARSER_STR(RAISE, "raise", name);
+        TERMINAL_PARSER_STR(RETURN, "return", name);
+        TERMINAL_PARSER_STR(GLOBAL, "global", name);
+        TERMINAL_PARSER_STR(LOCAL, "local", name);
+        TERMINAL_PARSER_STR(ASSERT, "assert", name);
+        TERMINAL_PARSER_STR(IF, "if", name);
+        TERMINAL_PARSER_STR(ELIF, "elif", name);
+        TERMINAL_PARSER_STR(ELSE, "else", name);
+        TERMINAL_PARSER_STR(WHILE, "while", name);
+        TERMINAL_PARSER_STR(FOR, "for", name);
+        TERMINAL_PARSER_STR(TRY, "try", name);
+        TERMINAL_PARSER_STR(FINALLY, "finally", name);
+        TERMINAL_PARSER_STR(WITH, "with", name);
+        TERMINAL_PARSER_STR(EXCEPT, "except", name);
+        TERMINAL_PARSER_STR(LAMBDA, "lambda", name);
+        TERMINAL_PARSER_STR(OR, "or", name);
+        TERMINAL_PARSER_STR(AND, "and", name);
+        TERMINAL_PARSER_STR(NOT, "not", name);
+        TERMINAL_PARSER_STR(AWAIT, "await", name);
+        TERMINAL_PARSER_STR(CLASS, "class", name);
+        TERMINAL_PARSER_STR(YIELD, "yield", name);
 
-        TERMINAL_PARSER_STR(OP_OR, "|", operator_);
-        TERMINAL_PARSER_STR(OP_XOR, "^", operator_);
-        TERMINAL_PARSER_STR(OP_AND, "&", operator_);
-        TERMINAL_PARSER_STR(OP_RSHIFT, ">>", operator_);
-        TERMINAL_PARSER_STR(OP_LSHIFT, "<<", operator_);
-        TERMINAL_PARSER_STR(OP_ADD, "+", operator_);
-        TERMINAL_PARSER_STR(OP_SUB, "-", operator_);
-        TERMINAL_PARSER_STR(OP_MUL, "*", operator_);
-        TERMINAL_PARSER_STR(OP_MATMUL, "@", operator_);
-        TERMINAL_PARSER_STR(OP_DIV, "/", operator_);
-        TERMINAL_PARSER_STR(OP_MOD, "%", operator_);
-        TERMINAL_PARSER_STR(OP_TRUEDIV, "//", operator_);
-        TERMINAL_PARSER_STR(OP_NOT, "~", operator_);
-        TERMINAL_PARSER_STR(OP_POW, "**", operator_);
+        TERMINAL_PARSER_STR(OP_OR, "|", pipe);
+        TERMINAL_PARSER_STR(OP_XOR, "^", circumflex);
+        TERMINAL_PARSER_STR(OP_AND, "&", ampersand);
+        TERMINAL_PARSER_STR(OP_RSHIFT, ">>", right_shift);
+        TERMINAL_PARSER_STR(OP_LSHIFT, "<<", left_shift);
+        TERMINAL_PARSER_STR(OP_ADD, "+", plus);
+        TERMINAL_PARSER_STR(OP_SUB, "-", minus);
+        TERMINAL_PARSER_STR(OP_MUL, "*", star);
+        TERMINAL_PARSER_STR(OP_MATMUL, "@", at);
+        TERMINAL_PARSER_STR(OP_DIV, "/", slash);
+        TERMINAL_PARSER_STR(OP_MOD, "%", percent);
+        TERMINAL_PARSER_STR(OP_TRUEDIV, "//", double_slash);
+        TERMINAL_PARSER_STR(OP_NOT, "~", tilde);
+        TERMINAL_PARSER_STR(OP_POW, "**", double_star);
 
         TERMINAL_PARSER_STR(NONE, "None", identifier);
         TERMINAL_PARSER_STR(TRUE, "True", identifier);
@@ -501,10 +516,10 @@ namespace pyc { namespace parser {
         //             import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
         PARSER(small_stmt)
         {
-            return PARSE(expr_stmt) || PARSE(del_stmt) || PARSE(pass_stmt) ||
+            return PARSE(del_stmt) || PARSE(pass_stmt) ||
                    PARSE(flow_stmt) || PARSE(import_stmt) ||
                    PARSE(global_stmt) || PARSE(nonlocal_stmt) ||
-                   PARSE(assert_stmt);
+                   PARSE(assert_stmt) || PARSE(expr_stmt);
         }
 
         // expr_stmt: testlist_star_expr (augassign (yield_expr|testlist) |
@@ -529,16 +544,33 @@ namespace pyc { namespace parser {
             return true;
         }
 
+
+        TERMINAL_PARSER_STR(PLUS_EQUAL, "+=", plus_equal);
+        TERMINAL_PARSER_STR(MINUS_EQUAL, "-=", minus_equal);
+        TERMINAL_PARSER_STR(STAR_EQUAL, "*=", star_equal);
+        TERMINAL_PARSER_STR(SLASH_EQUAL, "/=", slash_equal);
+        TERMINAL_PARSER_STR(PERCENT_EQUAL, "%=", percent_equal);
+        TERMINAL_PARSER_STR(AMPERSAND_EQUAL, "&=", ampersand_equal);
+        TERMINAL_PARSER_STR(PIPE_EQUAL, "|=", pipe_equal);
+        TERMINAL_PARSER_STR(CIRCUMFLEX_EQUAL, "^=", circumflex_equal);
+        TERMINAL_PARSER_STR(LEFT_SHIFT_EQUAL, "<<=", left_shift_equal);
+        TERMINAL_PARSER_STR(RIGHT_SHIFT_EQUAL, ">>=", right_shift_equal);
+        TERMINAL_PARSER_STR(DOUBLE_STAR_EQUAL, "**=", double_star_equal);
+        TERMINAL_PARSER_STR(DOUBLE_SLASH_EQUAL, "//=", double_slash_equal);
+        TERMINAL_PARSER_STR(AT_EQUAL, "@=", at_equal);
+
+
         // augassign: ('+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' |
         // '^=' |
         //            '<<=' | '>>=' | '**=' | '//=')
-        TERMINAL_PARSER(augassign, delimiter)
+        PARSER(augassign)
         {
-            return PARSE_STR("+=") || PARSE_STR("-=") || PARSE_STR("*=") ||
-                   PARSE_STR("@=") || PARSE_STR("/=") || PARSE_STR("%=") ||
-                   PARSE_STR("&=") || PARSE_STR("|=") || PARSE_STR("^=") ||
-                   PARSE_STR("<=") || PARSE_STR(">>=") || PARSE_STR("**=") ||
-                   PARSE_STR("//=");
+            return PARSE(PLUS_EQUAL) || PARSE(MINUS_EQUAL) ||
+                   PARSE(STAR_EQUAL) || PARSE(AT_EQUAL) || PARSE(SLASH_EQUAL) ||
+                   PARSE(PERCENT_EQUAL) || PARSE(AMPERSAND_EQUAL) ||
+                   PARSE(PIPE_EQUAL) || PARSE(CIRCUMFLEX_EQUAL) ||
+                   PARSE(LEFT_SHIFT_EQUAL) || PARSE(RIGHT_SHIFT_EQUAL) ||
+                   PARSE(DOUBLE_STAR_EQUAL) || PARSE(DOUBLE_SLASH_EQUAL);
         }
 
         //# For normal assignments, additional restrictions enforced by the
@@ -859,19 +891,36 @@ namespace pyc { namespace parser {
             return true;
         }
 
+        TERMINAL_PARSER_STR(LESS, "<", less);
+        TERMINAL_PARSER_STR(GREATER, ">", greater);
+        TERMINAL_PARSER_STR(DOUBLE_EQUAL, "==", double_equal);
+        TERMINAL_PARSER_STR(NOT_EQUAL, "!=", not_equal);
+        TERMINAL_PARSER_STR(LESS_EQUAL, "<=", less_equal);
+        TERMINAL_PARSER_STR(GREATER_EQUAL, ">=", greater_equal);
+
+        TERMINAL_PARSER_STR(IN, "in", op);
+        TERMINAL_PARSER(NOTIN, op)
+        {
+            return PARSE_STR("not") && PARSE_STR("in");
+        }
+        TERMINAL_PARSER_STR(IS, "is", op);
+        TERMINAL_PARSER(ISNOT, op)
+        {
+            return PARSE_STR("is") && PARSE_STR("not");
+        }
+
         //# <> isn't actually a valid comparison operator in Python. It's here
         // for the
         //# sake of a __future__ import described in PEP 401 (which really works
         //:-)
         // comp_op: '<'|'>'|'=='|'>='|'<='|'<>'|'!='|'in'|'not' 'in'|'is'|'is'
         // 'not'
-        TERMINAL_PARSER(comp_op, operator_)
+        PARSER(comp_op)
         {
-            return PARSE_STR("<") || PARSE_STR(">") || PARSE_STR("==") ||
-                   PARSE_STR(">=") || PARSE_STR("<=") || PARSE_STR("<>") ||
-                   PARSE_STR("!=") || PARSE_STR("in") ||
-                   (PARSE_STR("not") && PARSE_STR("in")) || PARSE_STR("is") ||
-                   (PARSE_STR("is") && PARSE_STR("not"));
+            return PARSE(LESS) || PARSE(GREATER) || PARSE(DOUBLE_EQUAL) ||
+                   PARSE(GREATER_EQUAL) || PARSE(LESS_EQUAL) ||
+                   PARSE(NOT_EQUAL) || PARSE(IN) || PARSE(NOTIN) || PARSE(IS) ||
+                   PARSE(ISNOT);
         }
 
         // star_expr: '*' expr
@@ -1003,7 +1052,6 @@ namespace pyc { namespace parser {
                 }
                 break;
             }
-            PARSE(COMMA);
             return true;
         }
 

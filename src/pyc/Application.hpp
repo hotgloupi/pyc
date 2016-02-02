@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/filesystem/path.hpp>
+
 namespace pyc {
 
     class Application
@@ -8,6 +10,7 @@ namespace pyc {
         struct Options
         {
             bool interpreter = false;
+            boost::filesystem::path file;
         };
 
     private:

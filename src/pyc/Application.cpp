@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <fstream>
 
 namespace io = boost::iostreams;
 
@@ -82,7 +83,26 @@ namespace pyc {
                 std::cout << "************************************************\n";
             }
         }
-
+        else
+        {
+            std::ifstream ifs(_options.file.c_str());
+            parser::Source source(ifs);
+            parser::Lexer lex(source, parser::Lexer::Mode::file);
+            parser::Lexer::Stack stack;
+            lex.parse(stack);
+            for (auto& e: stack)
+            {
+                auto& range = e.second;
+                if (e.first == parser::Token::name)
+                    std::cout << ">>>>>>>>>>>>>>>>>>> Got '"
+                              << std::string(range.begin, range.end)
+                              << "' " << e.first << "\n";
+                else
+                    std::cout << ">>>>>>>>>>>>>>>>>>> Got " << e.first << "\n";
+                if (e.first == parser::Token::eof)
+                    return;
+            }
+        }
     }
 
     Application::Options Application::parse_args(int ac, char* av[])
@@ -91,7 +111,10 @@ namespace pyc {
         for (int i = 1; i < ac; ++i)
             args.push_back(av[i]);
         Options options;
-        options.interpreter = true;
+        if (ac > 1)
+            options.file = av[1];
+        else
+            options.interpreter = true;
 
         return options;
     }

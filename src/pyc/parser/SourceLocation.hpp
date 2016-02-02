@@ -16,6 +16,7 @@ namespace pyc { namespace parser {
     public:
         static u64 const end_cursor = std::numeric_limits<u64>::max();
     private:
+        char mutable _value;
         Source* _source = nullptr;
         u64 mutable _cursor = end_cursor;
 
@@ -28,7 +29,7 @@ namespace pyc { namespace parser {
 
         void increment();
         bool equal(SourceLocation const& other) const;
-        char dereference() const;
+        char const& dereference() const;
     };
 
 }}

@@ -21,20 +21,18 @@ namespace pyc { namespace parser {
 
     bool SourceLocation::equal(SourceLocation const& other) const
     {
-      assert(_source == nullptr || other._source == nullptr ||
-             _source == other._source);
+      assert(_source == other._source);
       return _cursor == other._cursor;
     }
 
-    char SourceLocation::dereference() const
+    char const& SourceLocation::dereference() const
     {
-        char value;
-        if (!_source->get(_cursor, value))
+        if (!_source->get(_cursor, _value))
         {
-            _cursor = SourceLocation::end_cursor;
-            return '\0';
+            //_cursor = SourceLocation::end_cursor;
+            _value = '\0';
         }
-        return value;
+        return _value;
     }
 
 }}
