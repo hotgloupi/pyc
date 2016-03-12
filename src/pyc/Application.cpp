@@ -4,6 +4,7 @@
 #include <pyc/parser/Lexer.hpp>
 #include <pyc/parser/SourceRange.hpp>
 #include <pyc/parser/Token.hpp>
+#include <pyc/parser/Parser.hpp>
 
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -88,20 +89,22 @@ namespace pyc {
             std::ifstream ifs(_options.file.c_str());
             parser::Source source(ifs);
             parser::Lexer lex(source, parser::Lexer::Mode::file);
-            parser::Lexer::Stack stack;
-            lex.parse(stack);
-            for (auto& e: stack)
-            {
-                auto& range = e.second;
-                if (e.first == parser::Token::name)
-                    std::cout << ">>>>>>>>>>>>>>>>>>> Got '"
-                              << std::string(range.begin, range.end)
-                              << "' " << e.first << "\n";
-                else
-                    std::cout << ">>>>>>>>>>>>>>>>>>> Got " << e.first << "\n";
-                if (e.first == parser::Token::eof)
-                    return;
-            }
+            parser::Parser parser;
+            parser.parse(lex);
+            //parser::Lexer::Stack stack;
+            //lex.parse(stack);
+            //for (auto& e: stack)
+            //{
+            //    auto& range = e.second;
+            //    if (e.first == parser::Token::name)
+            //        std::cout << ">>>>>>>>>>>>>>>>>>> Got '"
+            //                  << std::string(range.begin, range.end)
+            //                  << "' " << e.first << "\n";
+            //    else
+            //        std::cout << ">>>>>>>>>>>>>>>>>>> Got " << e.first << "\n";
+            //    if (e.first == parser::Token::eof)
+            //        return;
+            //}
         }
     }
 

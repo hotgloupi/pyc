@@ -11,6 +11,36 @@ namespace pyc { namespace parser {
 #define CASE(name) case Token::name: return out << #name
         CASE(eof);
         CASE(identifier);
+        CASE(as);
+        CASE(async);
+        CASE(break_);
+        CASE(continue_);
+        CASE(def);
+        CASE(del);
+        CASE(from);
+        CASE(import);
+        CASE(pass);
+        CASE(raise);
+        CASE(return_);
+        CASE(global);
+        CASE(nonlocal);
+        CASE(assert_);
+        CASE(if_);
+        CASE(elif);
+        CASE(else_);
+        CASE(while_);
+        CASE(for_);
+        CASE(try_);
+        CASE(finally);
+        CASE(with);
+        CASE(except);
+        CASE(lambda);
+        CASE(or_);
+        CASE(and_);
+        CASE(not_);
+        CASE(await);
+        CASE(class_);
+        CASE(yield);
         CASE(number);
         CASE(string);
         CASE(newline);
@@ -62,7 +92,10 @@ namespace pyc { namespace parser {
         CASE(at_equal);
         CASE(right_arrow);
         CASE(ellipsis);
-        CASE(op);
+        CASE(in);
+        CASE(not_in);
+        CASE(is);
+        CASE(is_not);
         }
         std::abort();
     }

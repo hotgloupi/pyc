@@ -17,6 +17,7 @@ namespace pyc { namespace parser {
         std::vector<char const*> elements;
         void log(Stack& stack, char const* str)
         {
+            return;
 //std::cout << std::string(elements.size(), ' ') << elements.back()
 //                  << ' ' << str << std::endl;
             std::cout << str << ' ';
@@ -25,11 +26,11 @@ namespace pyc { namespace parser {
             std::cout << std::endl << " --> ";
             for (auto& pair: stack)
             {
-                if (pair.first == Token::name)
+                if (pair.first >= Token::_keyword_begin &&
+                    pair.first < Token::_keyword_end)
                 {
-                        std::cout
-                          << std::string(pair.second.begin, pair.second.end)
-                          << ' ';
+                    std::cout << std::string(pair.second.begin, pair.second.end)
+                              << ' ';
                 }
                 else
                     std::cout << pair.first << ' ';
@@ -80,7 +81,7 @@ namespace pyc { namespace parser {
         else                                                              \
         {                                                                 \
             if (*loc == '\0') {                                           \
-                std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EOF\n"; \
+                /*std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EOF\n"; */\
             }                                                             \
         }                                                                 \
         stack.pop_back();                                                 \
@@ -100,7 +101,7 @@ namespace pyc { namespace parser {
             if (*str != '\0') {
                 if (*loc == '\0')
                 {
-                    std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EOF\n";
+                    //std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EOF\n";
                 }
                 loc = old;
                 return false;
@@ -198,38 +199,38 @@ namespace pyc { namespace parser {
         TERMINAL_PARSER_STR(LBRACKET, "{", left_brace);
         TERMINAL_PARSER_STR(RBRACKET, "}", right_brace);
 
-        TERMINAL_PARSER_STR(AS, "as", name);
-        TERMINAL_PARSER_STR(ASYNC, "async", name);
-        TERMINAL_PARSER_STR(BREAK, "break", name);
-        TERMINAL_PARSER_STR(CONTINUE, "continue", name);
-        TERMINAL_PARSER_STR(DEF, "def", name);
-        TERMINAL_PARSER_STR(DEL, "del", name);
+        TERMINAL_PARSER_STR(AS, "as", as);
+        TERMINAL_PARSER_STR(ASYNC, "async", async);
+        TERMINAL_PARSER_STR(BREAK, "break", break_);
+        TERMINAL_PARSER_STR(CONTINUE, "continue", continue_);
+        TERMINAL_PARSER_STR(DEF, "def", def);
+        TERMINAL_PARSER_STR(DEL, "del", del);
         TERMINAL_PARSER_STR(DOT, ".", dot);
         TERMINAL_PARSER_STR(ELLIPSIS, "...", ellipsis);
-        TERMINAL_PARSER_STR(FROM, "from", name);
-        TERMINAL_PARSER_STR(IMPORT, "import", name);
-        TERMINAL_PARSER_STR(PASS, "pass", name);
-        TERMINAL_PARSER_STR(RAISE, "raise", name);
-        TERMINAL_PARSER_STR(RETURN, "return", name);
-        TERMINAL_PARSER_STR(GLOBAL, "global", name);
-        TERMINAL_PARSER_STR(LOCAL, "local", name);
-        TERMINAL_PARSER_STR(ASSERT, "assert", name);
-        TERMINAL_PARSER_STR(IF, "if", name);
-        TERMINAL_PARSER_STR(ELIF, "elif", name);
-        TERMINAL_PARSER_STR(ELSE, "else", name);
-        TERMINAL_PARSER_STR(WHILE, "while", name);
-        TERMINAL_PARSER_STR(FOR, "for", name);
-        TERMINAL_PARSER_STR(TRY, "try", name);
-        TERMINAL_PARSER_STR(FINALLY, "finally", name);
-        TERMINAL_PARSER_STR(WITH, "with", name);
-        TERMINAL_PARSER_STR(EXCEPT, "except", name);
-        TERMINAL_PARSER_STR(LAMBDA, "lambda", name);
-        TERMINAL_PARSER_STR(OR, "or", name);
-        TERMINAL_PARSER_STR(AND, "and", name);
-        TERMINAL_PARSER_STR(NOT, "not", name);
-        TERMINAL_PARSER_STR(AWAIT, "await", name);
-        TERMINAL_PARSER_STR(CLASS, "class", name);
-        TERMINAL_PARSER_STR(YIELD, "yield", name);
+        TERMINAL_PARSER_STR(FROM, "from", from);
+        TERMINAL_PARSER_STR(IMPORT, "import", import);
+        TERMINAL_PARSER_STR(PASS, "pass", pass);
+        TERMINAL_PARSER_STR(RAISE, "raise", raise);
+        TERMINAL_PARSER_STR(RETURN, "return", return_);
+        TERMINAL_PARSER_STR(GLOBAL, "global", global);
+        TERMINAL_PARSER_STR(NONLOCAL, "local", nonlocal);
+        TERMINAL_PARSER_STR(ASSERT, "assert", assert_);
+        TERMINAL_PARSER_STR(IF, "if", if_);
+        TERMINAL_PARSER_STR(ELIF, "elif", elif);
+        TERMINAL_PARSER_STR(ELSE, "else", else_);
+        TERMINAL_PARSER_STR(WHILE, "while", while_);
+        TERMINAL_PARSER_STR(FOR, "for", for_);
+        TERMINAL_PARSER_STR(TRY, "try", try_);
+        TERMINAL_PARSER_STR(FINALLY, "finally", finally);
+        TERMINAL_PARSER_STR(WITH, "with", with);
+        TERMINAL_PARSER_STR(EXCEPT, "except", except);
+        TERMINAL_PARSER_STR(LAMBDA, "lambda", lambda);
+        TERMINAL_PARSER_STR(OR, "or", or_);
+        TERMINAL_PARSER_STR(AND, "and", and_);
+        TERMINAL_PARSER_STR(NOT, "not", not_);
+        TERMINAL_PARSER_STR(AWAIT, "await", await);
+        TERMINAL_PARSER_STR(CLASS, "class", class_);
+        TERMINAL_PARSER_STR(YIELD, "yield", yield);
 
         TERMINAL_PARSER_STR(OP_OR, "|", pipe);
         TERMINAL_PARSER_STR(OP_XOR, "^", circumflex);
@@ -697,7 +698,7 @@ namespace pyc { namespace parser {
         // nonlocal_stmt: 'nonlocal' NAME (',' NAME)*
         PARSER(nonlocal_stmt)
         {
-            if (!(PARSE(LOCAL) && PARSE(IDENTIFIER))) return false;
+            if (!(PARSE(NONLOCAL) && PARSE(IDENTIFIER))) return false;
             while (PARSE(COMMA))
                 if (!PARSE(IDENTIFIER)) return false;
             return true;
@@ -898,13 +899,13 @@ namespace pyc { namespace parser {
         TERMINAL_PARSER_STR(LESS_EQUAL, "<=", less_equal);
         TERMINAL_PARSER_STR(GREATER_EQUAL, ">=", greater_equal);
 
-        TERMINAL_PARSER_STR(IN, "in", op);
-        TERMINAL_PARSER(NOTIN, op)
+        TERMINAL_PARSER_STR(IN, "in", in);
+        TERMINAL_PARSER(NOTIN, not_in)
         {
             return PARSE_STR("not") && PARSE_STR("in");
         }
-        TERMINAL_PARSER_STR(IS, "is", op);
-        TERMINAL_PARSER(ISNOT, op)
+        TERMINAL_PARSER_STR(IS, "is", is);
+        TERMINAL_PARSER(ISNOT, is_not)
         {
             return PARSE_STR("is") && PARSE_STR("not");
         }

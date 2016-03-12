@@ -26,6 +26,8 @@ namespace pyc { namespace parser {
     public:
         Lexer(Source& source, Mode mode);
 
+        Mode mode() const { return _mode; }
+
     public:
         bool parse(Stack& stack);
     };
