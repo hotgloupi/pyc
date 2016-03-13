@@ -14,58 +14,13 @@ SCRIPT_DIR = os.getcwd()
 include_dirs = [
     'build/src',
     'src',
-    'src/glew',
-    'deps/SDL/include',
-    'deps/SDL_image',
-    'deps/boost_1_57_0',
-    'build/dependencies/Python34/gcc/release/no-pymalloc/install/include/python3.4',
-    'build/dependencies/Python34/clang/release/no-pymalloc/install/include/python3.4',
-    'deps/freetype2/include',
-    'build/dependencies/SDL/install/include/SDL2',
-    'build/dependencies/SDL_image/install/include/SDL2',
-    'deps/assimp/include',
-    'deps/glm',
-    'build/dependencies/BulletPhysics/install/include/bullet',
-    'deps/libRocket/Include'
+    '/usr/local/include',
 ]
-
-if sys.platform.startswith('win32'):
-    include_dirs.extend([
-        'c:/Python34/Include',
-        "c:\\mingw\\x32-4.8.1-posix-dwarf-rev5\\mingw32\\lib\\gcc\\i686-w64-mingw32\\4.8.1\\include\\c++\\i686-w64-mingw32",
-        "c:\\mingw\\x32-4.8.1-posix-dwarf-rev5\\mingw32\\lib\\gcc\\i686-w64-mingw32\\4.8.1\\include\\c++",
-        "c:\\mingw\\x32-4.8.1-posix-dwarf-rev5\\mingw32\\lib\\gcc\\i686-w64-mingw32\\4.8.1\\include",
-        "c:\\mingw\\x32-4.8.1-posix-dwarf-rev5\\mingw32\\i686-w64-mingw32\\include",
-        "c:\\LLVM-3.4.svn\\lib\\clang\\3.4\\include",
-    ])
-elif sys.platform.startswith('darwin'):
-    include_dirs.extend([
-        '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/c++/v1',
-        '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/5.0/include',
-        '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include',
-        '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/include',
-        '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks',
-        '/Users/hotgloupi/local/lib/c++/v1',
-        '/usr/lib/c++/v1',
-    ])
-elif sys.platform.startswith('linux'):
-    for gcc_version in ['4.8', '4.7']:
-        include_dirs.extend([
-            '/usr/include/c++/%s' % gcc_version,
-            '/usr/include/i386-linux-gnu/c++/%s' % gcc_version,
-            '/usr/include/c++/%s/backward' % gcc_version,
-            '/usr/lib/gcc/i686-linux-gnu/%s/include' % gcc_version,
-            '/usr/local/include',
-            '/usr/lib/gcc/i686-linux-gnu/%s/include-fixed' % gcc_version,
-            '/usr/include/i386-linux-gnu',
-            '/usr/include'
-        ])
 
 flags = [
     '-Wall',
     '-Wextra',
     '-std=c++11',
-    '-DGLM_FORCE_CXX11',
     '-x', 'c++',
 ]
 
@@ -74,8 +29,8 @@ for d in include_dirs:
     flags.append('-I')
     flags.append(d)
 
-if sys.platform.startswith('darwin'):
-    flags.append('-stdlib=libc++')
+#if sys.platform.startswith('darwin'):
+#    flags.append('-stdlib=libc++')
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
 # compile_commands.json file to use that instead of 'flags'. See here for
@@ -131,14 +86,6 @@ def FlagsForFile( filename, **kw):
     final_flags = MakeRelativePathsInFlagsAbsolute(
       compilation_info.compiler_flags_,
       compilation_info.compiler_working_dir_ )
-
-    # NOTE: This is just for YouCompleteMe; it's highly likely that your project
-    # does NOT need to remove the stdlib flag. DO NOT USE THIS IN YOUR
-    # ycm_extra_conf IF YOU'RE NOT 100% YOU NEED IT.
-    try:
-      final_flags.remove( '-stdlib=libc++' )
-    except ValueError:
-      pass
   else:
     relative_to = DirectoryOfThisScript()
     final_flags = MakeRelativePathsInFlagsAbsolute( flags, relative_to )

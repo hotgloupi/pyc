@@ -31,7 +31,7 @@ namespace pyc { namespace parser {
                 return _it->first;
             }
 
-            bool read(Token token)
+            bool _eat(Token token)
             {
                 if (_tok() == token)
                 {
@@ -55,23 +55,33 @@ namespace pyc { namespace parser {
             //             import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
             Ptr<ast::Statement> _stmt()
             {
+                if (_eat(Token::del))
+                    return make_unique<ast::DelStatement>(_exprlist());
+                else if (_eat(Token::pass))
+                    return make_unique<ast::PassStatement>();
+                else if (_eat(Token::break_))
+                    return make_unique<ast::BreakStatement>();
+                else if (_eat(Token::continue_))
+                    return make_unique<ast::ContinueStatement>();
+                else if (_eat(Token::return_))
+                    return make_unique<ast::ReturnStatement>();
+                else if (_eat(Token::raise))
+                    return make_unique<ast::RaiseStatement>();
+                else if (_eat(Token::yield))
+                    return make_unique<ast::YieldStatement>();
+                else if (_tok() == Token::import || _tok() == Token::from)
+                    return _import_stmt();
+                else if (_eat(Token::global))
+                    return make_unique<ast::GlobalStatement>();
+                else if (_eat(Token::nonlocal))
+                    return make_unique<ast::NonLocalStatement>();
+                else if (_eat(Token::assert))
+                    return make_unique<ast::AssertStatement>();
+            }
 
-                switch (_tok())
-                {
-#define CASE(token, AstType, ...) \
-    case Token::token:            \
-        read(Token::token);       \
-        return make_unique<ast::AstType>(__VA_ARGS__)
-                    CASE(del, DelStatement, _exprlist());
-                    CASE(pass, PassStatement);
-                    CASE(break_, BreakStatement);
-                    CASE(continue_, ContinueStatement);
-                    CASE(return_, ReturnStatement);
-                    CASE(raise, RaiseStatement);
-                    CASE(yield, YieldStatement);
-                default:
-                    return nullptr;
-                }
+            Ptr<ast::Statement> _import_stmt()
+            {
+                return nullptr;
             }
 
             Ptr<ast::Statement> _compound_stmt()

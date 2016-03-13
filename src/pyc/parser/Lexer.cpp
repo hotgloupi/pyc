@@ -17,7 +17,6 @@ namespace pyc { namespace parser {
         std::vector<char const*> elements;
         void log(Stack& stack, char const* str)
         {
-            return;
 //std::cout << std::string(elements.size(), ' ') << elements.back()
 //                  << ' ' << str << std::endl;
             std::cout << str << ' ';
@@ -176,10 +175,15 @@ namespace pyc { namespace parser {
         TERMINAL_PARSER(STRING, string)
         {
             if (*loc != '"') return false;
-            do
+            do {
                 ++loc;
-            while (*loc != '"');
-            return *loc == '"';
+            } while (*loc && *loc != '"');
+            if (*loc == '"')
+            {
+                ++loc;
+                return true;
+            }
+            return false;
         }
 
         TERMINAL_PARSER(ENDMARKER, eof) { return *loc == '\0'; }

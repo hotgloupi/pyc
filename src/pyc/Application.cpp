@@ -10,6 +10,7 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -89,8 +90,10 @@ namespace pyc {
             std::ifstream ifs(_options.file.c_str());
             parser::Source source(ifs);
             parser::Lexer lex(source, parser::Lexer::Mode::file);
-            parser::Parser parser;
-            parser.parse(lex);
+            //parser::Parser parser;
+            parser::Lexer::Stack stack;
+            if (!lex.parse(stack))
+                std::cout << "HU?\n";
             //parser::Lexer::Stack stack;
             //lex.parse(stack);
             //for (auto& e: stack)

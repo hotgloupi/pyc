@@ -5,7 +5,7 @@ namespace pyc { namespace parser {
     class Lexer;
     class Source;
     class SourceLocation;
-    class SourceRange;
+    struct SourceRange;
 
     enum class Token;
 }}

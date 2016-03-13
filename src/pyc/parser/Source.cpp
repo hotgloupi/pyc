@@ -4,6 +4,8 @@
 #include <boost/iostreams/get.hpp>
 #include <boost/iostreams/operations.hpp>
 
+#include <iostream>
+
 namespace io = boost::iostreams;
 
 namespace pyc { namespace parser {
