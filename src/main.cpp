@@ -1,4 +1,5 @@
 #include <pyc/Application.hpp>
+#include <pyc/error.hpp>
 
 #include <iostream>
 
@@ -10,7 +11,7 @@ int main(int ac, char* av[])
     }
     catch (...)
     {
-        std::cerr << "Error: " << std::endl;
+        std::cerr << "Error: " << pyc::error::string() << std::endl;
         return 1;
     }
     return 0;

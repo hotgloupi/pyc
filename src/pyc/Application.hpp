@@ -9,6 +9,7 @@ namespace pyc {
     public:
         struct Options
         {
+            bool syntax = false;
             bool interpreter = false;
             boost::filesystem::path file;
         };

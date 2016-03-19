@@ -3,6 +3,7 @@
 #include "Token.hpp"
 
 #include <pyc/ast.hpp>
+#include <pyc/str.hpp>
 
 #include <cassert>
 #include <iostream>
@@ -42,17 +43,28 @@ namespace pyc { namespace parser {
             }
 
             // Parse top level statements
-            Parser::NodePtr parse(Lexer::Mode mode)
+            Ptr<ast::Block> parse(Lexer::Mode mode)
             {
-                _stmt();
+                auto block = make_unique<ast::Block>();
 
-                return nullptr;
+                while (true)
+                {
+                    while (_eat(Token::newline) || _eat(Token::semicolon))
+                    {  }
+                    if (_eat(Token::eof))
+                        break;
+                    block->append(_stmt());
+                }
+
+                return block;
             }
 
             // stmt: simple_stmt | compound_stmt
             // simple_stmt: small_stmt (';' small_stmt)* [';'] NEWLINE
             // small_stmt: (expr_stmt | del_stmt | pass_stmt | flow_stmt |
             //             import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
+            // compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt |
+            //                with_stmt | funcdef | classdef | decorated | async_stmt
             Ptr<ast::Statement> _stmt()
             {
                 if (_eat(Token::del))
@@ -75,8 +87,27 @@ namespace pyc { namespace parser {
                     return make_unique<ast::GlobalStatement>();
                 else if (_eat(Token::nonlocal))
                     return make_unique<ast::NonLocalStatement>();
-                else if (_eat(Token::assert))
+                else if (_eat(Token::assert_))
                     return make_unique<ast::AssertStatement>();
+                else if (_eat(Token::if_))
+                    return make_unique<ast::IfStatement>();
+                else if (_eat(Token::while_))
+                    return make_unique<ast::WhileStatement>();
+                else if (_eat(Token::for_))
+                    return make_unique<ast::ForStatement>();
+                else if (_eat(Token::try_))
+                    return make_unique<ast::TryStatement>();
+                else if (_eat(Token::with))
+                    return make_unique<ast::WithStatement>();
+                else if (_eat(Token::def))
+                    return make_unique<ast::FunctionDefinition>();
+                else if (_eat(Token::class_))
+                    return make_unique<ast::ClassDefinition>();
+                else if (_eat(Token::at))
+                    return make_unique<ast::DecoratedDefinition>();
+                else if (_eat(Token::async))
+                    return make_unique<ast::AsyncDefinition>();
+                throw std::runtime_error("Invalid token: " + str(_tok()));
             }
 
             Ptr<ast::Statement> _import_stmt()

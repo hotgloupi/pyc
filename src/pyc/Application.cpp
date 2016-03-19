@@ -90,24 +90,20 @@ namespace pyc {
             std::ifstream ifs(_options.file.c_str());
             parser::Source source(ifs);
             parser::Lexer lex(source, parser::Lexer::Mode::file);
-            //parser::Parser parser;
-            parser::Lexer::Stack stack;
-            if (!lex.parse(stack))
-                std::cout << "HU?\n";
-            //parser::Lexer::Stack stack;
-            //lex.parse(stack);
-            //for (auto& e: stack)
-            //{
-            //    auto& range = e.second;
-            //    if (e.first == parser::Token::name)
-            //        std::cout << ">>>>>>>>>>>>>>>>>>> Got '"
-            //                  << std::string(range.begin, range.end)
-            //                  << "' " << e.first << "\n";
-            //    else
-            //        std::cout << ">>>>>>>>>>>>>>>>>>> Got " << e.first << "\n";
-            //    if (e.first == parser::Token::eof)
-            //        return;
-            //}
+            if (_options.syntax)
+            {
+                parser::Lexer::Stack stack;
+                if (!lex.parse(stack))
+                    throw std::runtime_error("Invalid syntax");
+
+            }
+            else
+            {
+                parser::Parser parser;
+                auto ptr = parser.parse(lex);
+                if (ptr == nullptr)
+                    throw std::runtime_error("Couldn't parse the whole thing");
+            }
         }
     }
 
@@ -117,9 +113,19 @@ namespace pyc {
         for (int i = 1; i < ac; ++i)
             args.push_back(av[i]);
         Options options;
-        if (ac > 1)
-            options.file = av[1];
-        else
+        for (auto&& arg: args)
+        {
+            if (arg == "--syntax")
+                options.syntax = true;
+            else
+            {
+                if (!options.file.empty())
+                    throw std::runtime_error("Cannot specify multiple files");
+                options.file = arg;
+            }
+        }
+
+        if (options.file.empty())
             options.interpreter = true;
 
         return options;
