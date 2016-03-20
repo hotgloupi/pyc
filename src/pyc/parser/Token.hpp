@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <functional>
 
 namespace pyc { namespace parser {
     enum class Token
@@ -112,3 +113,20 @@ namespace pyc { namespace parser {
     std::ostream& operator <<(std::ostream& out, Token tok);
 
 }}
+
+namespace std {
+
+    template <>
+    struct hash<pyc::parser::Token>
+      : public hash<underlying_type<pyc::parser::Token>::type>
+    {
+        typedef underlying_type<pyc::parser::Token>::type Underlying;
+        typedef hash<Underlying> Super;
+
+        size_t operator()(pyc::parser::Token token) const
+        {
+            return Super::operator()(static_cast<Underlying>(token));
+        }
+    };
+
+}

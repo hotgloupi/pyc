@@ -12,6 +12,7 @@ return function(build)
             'iostreams',
             'filesystem',
             'system',
+            'serialization',
         },
     }
 

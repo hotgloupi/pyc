@@ -9,13 +9,8 @@ namespace pyc { namespace ast {
 
     class Block : public Node
     {
-    private:
-        std::vector<Ptr<Statement>> _statements;
-
     public:
-        void append(Ptr<Statement> stmt)
-        { _statements.emplace_back(std::move(stmt)); }
+        std::vector<Ptr<Statement>> statements;
     };
 
 }}
-

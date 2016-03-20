@@ -5,6 +5,7 @@
 #include <pyc/parser/SourceRange.hpp>
 #include <pyc/parser/Token.hpp>
 #include <pyc/parser/Parser.hpp>
+#include <pyc/ast/serialize.hpp>
 
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -103,6 +104,7 @@ namespace pyc {
                 auto ptr = parser.parse(lex);
                 if (ptr == nullptr)
                     throw std::runtime_error("Couldn't parse the whole thing");
+                ast::serialize::to_xml(std::cout, *ptr);
             }
         }
     }
