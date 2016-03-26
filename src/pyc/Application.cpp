@@ -104,7 +104,7 @@ namespace pyc {
                 auto ptr = parser.parse(lex);
                 if (ptr == nullptr)
                     throw std::runtime_error("Couldn't parse the whole thing");
-                ast::serialize::to_xml(std::cout, *ptr);
+                ast::serialize::to_text(std::cout, *ptr);
             }
         }
     }

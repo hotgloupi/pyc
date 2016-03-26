@@ -42,6 +42,10 @@ namespace pyc { namespace parser {
         {Token::double_star, 110}
     };
 
+#define NOT_IMPLEMENTED()                                                 \
+    throw std::runtime_error("Not implemented " + std::string(__FILE__) + \
+                             ":" + std::to_string(__LINE__));
+
     namespace {
 
         struct Context
@@ -81,6 +85,15 @@ namespace pyc { namespace parser {
                 return false;
             }
 
+            Token _eat()
+            {
+                if (_it == _end)
+                    throw std::runtime_error("Unexpected end of stream");
+                auto tok = _tok();
+                ++_it;
+                return tok;
+            }
+
             bool _eat_newlines()
             {
                 bool found = false;
@@ -100,7 +113,7 @@ namespace pyc { namespace parser {
             }
 
             // Parse top level statements
-            Ptr<ast::Block> parse(Lexer::Mode mode)
+            Ptr<ast::Block> parse(Lexer::Mode /*mode*/)
             {
                 return _block();
             }
@@ -136,10 +149,11 @@ namespace pyc { namespace parser {
             //             import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
             // compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt |
             //                with_stmt | funcdef | classdef | decorated | async_stmt
+            // return_stmt: 'return' [testlist]
             Ptr<ast::Statement> _stmt()
             {
                 if (_eat(Token::del))
-                    return make_unique<ast::DelStatement>(_exprlist());
+                    return make_unique<ast::DelStatement>(_expression_list());
                 else if (_eat(Token::pass))
                     return make_unique<ast::PassStatement>();
                 else if (_eat(Token::break_))
@@ -148,8 +162,10 @@ namespace pyc { namespace parser {
                     return make_unique<ast::ContinueStatement>();
                 else if (_eat(Token::return_))
                 {
-                    if (_eat_newlines())
-                        return make_unique<ast::ReturnStatement>();
+                    auto res = make_unique<ast::ReturnStatement>();
+                    if (!_eat_newlines())
+                        res->value = _expression_list();
+                    return std::move(res);
                 }
                 else if (_eat(Token::raise))
                     return make_unique<ast::RaiseStatement>();
@@ -199,9 +215,144 @@ namespace pyc { namespace parser {
                 return nullptr;
             }
 
-            Ptr<ast::ExpressionList> _exprlist()
+            template<typename... Tokens>
+            bool _is_one_of(Tokens... tokens)
             {
-                return nullptr;
+                Token current = _tok();
+                Token values[] = { static_cast<Token>(tokens)... };
+                for (auto tok: values)
+                    if (tok == current) return true;
+                return false;
+            }
+
+
+            Ptr<ast::Expression> _expression_atom()
+            {
+
+                if (_is_one_of(Token::plus, Token::minus, Token::tilde))
+                {
+                    //return make_unique<ast::UnaryExpression>(_eat(), )
+                    NOT_IMPLEMENTED();
+                }
+
+                Ptr<ast::Expression> res;
+                if (_eat(Token::left_parenthesis))
+                {
+                    res = _expression_list();
+                    _eat_newlines();
+                    _consume(Token::right_parenthesis);
+                }
+                else if (_eat(Token::lambda))
+                {
+                    // XXX parse lambda
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::identifier)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::string)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::number)
+                {
+                    res = make_unique<ast::Number>(_str());
+                    _eat();
+                }
+                else if (_tok() == Token::ellipsis)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else
+                    NOT_IMPLEMENTED();
+
+                return res;
+            }
+
+            // The operator precedence or 0
+            int _precedence(Token op)
+            {
+                if (_it == _end) return 0;
+                auto it = operator_precedence.find(op);
+                if (it == operator_precedence.end()) return 0;
+                return it->second;
+            }
+
+            Ptr<ast::Expression> _expression(int last_precedence = -1,
+                                             Ptr<ast::Expression> lhs = nullptr)
+            {
+                if (lhs == nullptr)
+                    lhs = _expression_atom();
+
+                while (true)
+                {
+                    auto precedence = _precedence(_tok());
+                    if (precedence == 0)
+                    {
+                        if (_eat(Token::for_))
+                        {
+                            // XXX Comprehension list here
+                            NOT_IMPLEMENTED();
+                        }
+                        return lhs;
+                    }
+                    if (precedence < last_precedence)
+                        return lhs;
+
+                    auto op = _eat();
+                    auto rhs = _expression_atom();
+                    auto next_precedence = _precedence(_tok());
+                    if (next_precedence > precedence)
+                    {
+                        rhs = _expression(precedence + 1, std::move(rhs));
+                    }
+                    lhs = make_unique<ast::BinaryExpression>(
+                        op,
+                        std::move(lhs),
+                        std::move(rhs)
+                    );
+                }
+
+            }
+
+            // Parse an expression or a list of expression
+            // Covers testlist and exprlist
+            Ptr<ast::Expression> _expression_list()
+            {
+                Ptr<ast::ExpressionList> list = nullptr;
+                Ptr<ast::Expression> current_expression = nullptr;
+                while (true)
+                {
+                    if (_tok() == Token::newline || _tok() == Token::eof)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        current_expression = _expression();
+                    }
+                    assert(current_expression != nullptr);
+
+                    if (_eat(Token::comma))
+                    {
+                        if (list == nullptr)
+                            list = make_unique<ast::ExpressionList>();
+                        if (current_expression != nullptr)
+                            list->values.emplace_back(
+                              std::move(current_expression));
+                    }
+                    else
+                    {
+                        if (list == nullptr)
+                            return current_expression;
+                        if (current_expression != nullptr)
+                            list->values.emplace_back(
+                              std::move(current_expression));
+                        return std::move(list);
+                    }
+                }
+                return std::move(list);
             }
         };
 

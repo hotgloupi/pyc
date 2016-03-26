@@ -2,6 +2,7 @@
 
 #include <pyc/ast/AssertStatement.hpp>
 #include <pyc/ast/AsyncDefinition.hpp>
+#include <pyc/ast/BinaryExpression.hpp>
 #include <pyc/ast/Block.hpp>
 #include <pyc/ast/BreakStatement.hpp>
 #include <pyc/ast/ClassDefinition.hpp>
@@ -21,6 +22,8 @@
 #include <pyc/ast/ReturnStatement.hpp>
 #include <pyc/ast/Statement.hpp>
 #include <pyc/ast/TryStatement.hpp>
+#include <pyc/ast/UnaryExpression.hpp>
 #include <pyc/ast/WhileStatement.hpp>
 #include <pyc/ast/WithStatement.hpp>
 #include <pyc/ast/YieldStatement.hpp>
+#include <pyc/ast/Number.hpp>

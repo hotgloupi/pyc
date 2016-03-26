@@ -11,6 +11,8 @@ namespace pyc { namespace ast {
     {
     public:
         std::vector<Ptr<Statement>> statements;
+    public:
+        void dump(std::ostream& out, unsigned indent = 0) const override;
     };
 
 }}

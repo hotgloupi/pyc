@@ -7,6 +7,8 @@ namespace pyc {
     template<typename T>
     using Ptr = std::unique_ptr<T>;
 
+    template<typename T>
+    using ConstPtr = std::unique_ptr<T const> const;
 
     template<typename T, typename... Args>
     Ptr<T> make_unique(Args&&... args)

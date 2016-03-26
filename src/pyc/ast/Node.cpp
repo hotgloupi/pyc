@@ -1,14 +1,21 @@
 #include "Node.hpp"
-#include "serialize.hpp"
+
+#include <ostream>
+#include <iomanip>
 
 namespace pyc { namespace ast {
 
     Node::~Node()
     {}
 
-    void Node::dump(std::ostream& out)
+    void Node::dump(std::ostream& out, unsigned indent) const
     {
-        serialize::to_xml(out, *this);
+
+        out << "<Node>";
     }
 
+    std::ostream& Node::_indent(std::ostream& out, unsigned indent) const
+    {
+        return out << std::string(indent * 2, ' ');
+    }
 }}

@@ -12,6 +12,8 @@ namespace pyc { namespace ast {
     public:
         std::string name;
         Ptr<Block> body;
+    public:
+        void dump(std::ostream& out, unsigned indent = 0) const override;
     };
 
 }}

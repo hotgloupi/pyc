@@ -7,10 +7,10 @@ namespace pyc { namespace ast {
     class DelStatement : public Statement
     {
     private:
-        Ptr<ExpressionList> _exprlist;
+        Ptr<Expression> _exprlist;
 
     public:
-        DelStatement(Ptr<ExpressionList> exprlist)
+        DelStatement(Ptr<Expression> exprlist)
             : _exprlist(std::move(exprlist))
         {}
     };

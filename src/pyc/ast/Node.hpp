@@ -13,7 +13,9 @@ namespace pyc { namespace ast {
         virtual ~Node();
 
     public:
-        void dump(std::ostream& out);
+        virtual void dump(std::ostream& out, unsigned indent = 0) const;
+    protected:
+        std::ostream& _indent(std::ostream& out, unsigned indent = 0) const;
     };
 
 }}

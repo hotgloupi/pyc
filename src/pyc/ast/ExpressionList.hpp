@@ -1,11 +1,15 @@
 #pragma once
 
-#include <pyc/ast/Node.hpp>
+#include <pyc/ast/Expression.hpp>
+
+#include <vector>
 
 namespace pyc { namespace ast {
 
-    class ExpressionList : public Node
+    class ExpressionList : public Expression
     {
+    public:
+        std::vector<Ptr<Expression>> values;
     };
 
 }}

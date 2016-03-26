@@ -3,7 +3,9 @@
 namespace pyc { namespace ast {
 
     class AssertStatement;
+    class Number;
     class AsyncDefinition;
+    class BinaryExpression;
     class Block;
     class BreakStatement;
     class ClassDefinition;
@@ -23,6 +25,7 @@ namespace pyc { namespace ast {
     class ReturnStatement;
     class Statement;
     class TryStatement;
+    class UnaryExpression;
     class WhileStatement;
     class WithStatement;
     class YieldStatement;
