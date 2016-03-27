@@ -2,14 +2,18 @@
 
 #include <pyc/ast/Expression.hpp>
 
-#include <vector>
-
 namespace pyc { namespace ast {
 
-    class ExpressionList : public Expression
+    class String : public Expression
     {
     public:
-        std::vector<Ptr<Expression>> values;
+        std::string const value;
+
+    public:
+        explicit String(std::string value)
+          : value(std::move(value))
+        {}
+    public:
         void dump(std::ostream& out, unsigned indent = 0) const override;
     };
 

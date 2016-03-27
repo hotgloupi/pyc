@@ -225,6 +225,19 @@ namespace pyc { namespace parser {
                 return false;
             }
 
+            Ptr<ast::Slice> _slice()
+            {
+                Ptr<ast::Expression> from, to, step;
+                from = _expression_atom();
+                if (_eat(Token::colon))
+                {
+                    to = _expression_atom();
+                    if (_eat(Token::colon))
+                        step = _expression_atom();
+                }
+                return make_unique<ast::Slice>(
+                  std::move(from), std::move(to), std::move(step));
+            }
 
             Ptr<ast::Expression> _expression_atom()
             {
@@ -249,11 +262,13 @@ namespace pyc { namespace parser {
                 }
                 else if (_tok() == Token::identifier)
                 {
-                    NOT_IMPLEMENTED();
+                    res = make_unique<ast::Identifier>(_str());
+                    _eat();
                 }
                 else if (_tok() == Token::string)
                 {
-                    NOT_IMPLEMENTED();
+                    res = make_unique<ast::String>(_str());
+                    _eat();
                 }
                 else if (_tok() == Token::number)
                 {
@@ -267,6 +282,46 @@ namespace pyc { namespace parser {
                 else
                     NOT_IMPLEMENTED();
 
+                while (true)
+                {
+                    if (_eat(Token::left_parenthesis))
+                    {
+                        auto args = _args();
+                        _consume(Token::right_parenthesis);
+                        res = make_unique<ast::FunctionCall>(
+                          std::move(res), std::move(args));
+                    }
+                    else if (_eat(Token::left_square_bracket))
+                    {
+                        auto slice = _slice();
+                        _consume(Token::right_square_bracket);
+                        res = make_unique<ast::GetItem>(
+                          std::move(res), std::move(slice));
+                    }
+                    else if (_eat(Token::dot))
+                    {
+                        NOT_IMPLEMENTED();
+                    }
+                    else
+                        break;
+                }
+                return res;
+            }
+
+
+            Ptr<ast::ExpressionList> _args()
+            {
+                auto res = make_unique<ast::ExpressionList>();
+                while (_tok() != Token::right_parenthesis)
+                {
+                    res->values.emplace_back(_expression_atom());
+                    if (_eat(Token::equal))
+                    {
+                        NOT_IMPLEMENTED();
+                    }
+                    if (!_eat(Token::comma))
+                        break;
+                }
                 return res;
             }
 
