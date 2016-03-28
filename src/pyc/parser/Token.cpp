@@ -42,7 +42,12 @@ namespace pyc { namespace parser {
         CASE(class_);
         CASE(yield);
         CASE(number);
-        CASE(string);
+        CASE(bytes);
+        CASE(raw_bytes);
+        CASE(formatted_string);
+        CASE(raw_formatted_string);
+        CASE(unicode);
+        CASE(raw_unicode);
         CASE(newline);
         CASE(indent);
         CASE(dedent);

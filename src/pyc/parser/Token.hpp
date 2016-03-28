@@ -43,7 +43,12 @@ namespace pyc { namespace parser {
         _keyword_end,
 
         number = _keyword_end,
-        string,
+        bytes,
+        raw_bytes,
+        formatted_string,
+        raw_formatted_string,
+        unicode,
+        raw_unicode,
         newline,
         indent,
         dedent,

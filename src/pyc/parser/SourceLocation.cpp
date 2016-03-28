@@ -19,6 +19,11 @@ namespace pyc { namespace parser {
         _cursor += 1;
     }
 
+    void SourceLocation::advance(size_t i)
+    {
+        _cursor += i;
+    }
+
     bool SourceLocation::equal(SourceLocation const& other) const
     {
       assert(_source == other._source);

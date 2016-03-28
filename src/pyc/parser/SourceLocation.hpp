@@ -28,6 +28,7 @@ namespace pyc { namespace parser {
         friend class boost::iterator_core_access;
 
         void increment();
+        void advance(size_t i);
         bool equal(SourceLocation const& other) const;
         char const& dereference() const;
     };

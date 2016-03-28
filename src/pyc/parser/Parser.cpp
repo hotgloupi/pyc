@@ -265,10 +265,30 @@ namespace pyc { namespace parser {
                     res = make_unique<ast::Identifier>(_str());
                     _eat();
                 }
-                else if (_tok() == Token::string)
+                else if (_tok() == Token::unicode)
                 {
                     res = make_unique<ast::String>(_str());
                     _eat();
+                }
+                else if (_tok() == Token::raw_unicode)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::bytes)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::raw_bytes)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::formatted_string)
+                {
+                    NOT_IMPLEMENTED();
+                }
+                else if (_tok() == Token::raw_formatted_string)
+                {
+                    NOT_IMPLEMENTED();
                 }
                 else if (_tok() == Token::number)
                 {

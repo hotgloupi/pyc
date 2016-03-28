@@ -173,16 +173,92 @@ namespace pyc { namespace parser {
             return start != loc;
         }
 
-        TERMINAL_PARSER(STRING, string)
+        PARSER(string_literal)
         {
-            if (*loc != '"') return false;
-            do {
-                ++loc;
-            } while (*loc && *loc != '"');
-            if (*loc == '"')
+
+            bool bytes = false;
+            bool raw = false;
+            bool formatted = false;
             {
-                ++loc;
-                return true;
+                bool unicode = false;
+parse_flag:     switch (*loc)
+                {
+                case 'b':
+                case 'B':
+                    bytes = true;
+                    ++loc; goto parse_flag;
+                case 'r':
+                case 'R':
+                    raw = true;
+                    ++loc; goto parse_flag;
+                    break;
+                case 'u':
+                case 'U':
+                    unicode = true;
+                    ++loc; goto parse_flag;
+                    break;
+                case 'f':
+                case 'F':
+                    formatted = true;
+                    ++loc; goto parse_flag;
+                case '"':
+                case '\'':
+                    break;
+                default:
+                    return false;
+                }
+                if (bytes && formatted)
+                    throw "wat?";
+                if (bytes && unicode)
+                    throw "wat?";
+            }
+            char delimiter = *loc;
+            int delim_size = 1;
+            if (*(loc + 1) == delimiter && *(loc + 2) == delimiter)
+            {
+                delim_size = 3;
+            }
+            loc += delim_size;
+
+            bool ignore_next = false;
+            auto start = loc;
+            while (*loc != '\0')
+            {
+                if (ignore_next)
+                {
+                    ignore_next = false;
+                    loc += 1;
+                    continue;
+                }
+                if (*loc == '\\')
+                {
+                    ignore_next = true;
+                    loc += 1;
+                    continue;
+                }
+                auto end = loc;
+                int i = 0;
+                while (*loc == delimiter && i < delim_size)
+                {
+                    loc += 1;
+                    i += 1;
+                }
+                if (i == 0)
+                    loc += 1;
+                else if (i == delim_size)
+                {
+                    Token token;
+                    if (bytes)
+                        token = raw ? Token::raw_bytes : Token::bytes;
+                    else if (formatted)
+                        token = raw ? Token::raw_formatted_string : Token::formatted_string;
+                    else
+                        token = raw ? Token::raw_unicode : Token::unicode;
+                    stack.emplace_back(token, SourceRange{start, end});
+                    return true;
+                }
+                else if (delim_size == 1 && (*loc == '\r' || *loc == '\n'))
+                    throw "wat?";
             }
             return false;
         }
@@ -1035,9 +1111,9 @@ namespace pyc { namespace parser {
                 PARSE(dictorsetmaker);
                 return PARSE(RBRACKET);
             }
-            else if (PARSE(STRING))
+            else if (PARSE(string_literal))
             {
-                while (PARSE(STRING)) {
+                while (PARSE(string_literal)) {
                 }
                 return true;
             }
