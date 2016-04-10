@@ -15,12 +15,15 @@ include_dirs = [
     'build/src',
     'src',
     '/usr/local/include',
+    '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include',
+    '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1',
 ]
 
 flags = [
     '-Wall',
     '-Wextra',
     '-std=c++11',
+    '-stdlib=libc++'
     '-x', 'c++',
 ]
 
