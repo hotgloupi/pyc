@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pyc/ast/AssertStatement.hpp>
+#include <pyc/ast/Assignment.hpp>
 #include <pyc/ast/AsyncDefinition.hpp>
 #include <pyc/ast/BinaryExpression.hpp>
 #include <pyc/ast/Block.hpp>
@@ -10,6 +11,7 @@
 #include <pyc/ast/DecoratedDefinition.hpp>
 #include <pyc/ast/DelStatement.hpp>
 #include <pyc/ast/Expression.hpp>
+#include <pyc/ast/ExpressionStatement.hpp>
 #include <pyc/ast/ExpressionList.hpp>
 #include <pyc/ast/ForStatement.hpp>
 #include <pyc/ast/FunctionCall.hpp>
@@ -32,3 +34,4 @@
 #include <pyc/ast/WhileStatement.hpp>
 #include <pyc/ast/WithStatement.hpp>
 #include <pyc/ast/YieldStatement.hpp>
+#include <pyc/ast/ImportStatement.hpp>

@@ -3,6 +3,7 @@
 namespace pyc { namespace ast {
 
     class AssertStatement;
+    class Assignment;
     class AsyncDefinition;
     class BinaryExpression;
     class Block;
@@ -13,6 +14,7 @@ namespace pyc { namespace ast {
     class DelStatement;
     class Expression;
     class ExpressionList;
+    class ExpressionStatement;
     class ForStatement;
     class FunctionCall;
     class FunctionDefinition;
@@ -34,5 +36,6 @@ namespace pyc { namespace ast {
     class WhileStatement;
     class WithStatement;
     class YieldStatement;
+    class ImportStatement;
 
 }}

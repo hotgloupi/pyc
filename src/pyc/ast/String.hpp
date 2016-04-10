@@ -2,6 +2,8 @@
 
 #include <pyc/ast/Expression.hpp>
 
+#include <string>
+
 namespace pyc { namespace ast {
 
     class String : public Expression

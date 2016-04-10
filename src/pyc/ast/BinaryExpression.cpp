@@ -6,16 +6,15 @@ namespace pyc { namespace ast {
 
     void BinaryExpression::dump(std::ostream& out, unsigned indent) const
     {
-        out << "{\n";
-        _indent(out, indent + 1) << "class: " << "BinaryExpression,\n";
-        _indent(out, indent + 1) << "operator: " << this->token << ",\n";
-        _indent(out, indent + 1) << "lhs: ";
+        out << "BinaryExpression(\n";
+        _indent(out, indent + 1) << "operator = " << this->token << ",\n";
+        _indent(out, indent + 1) << "lhs = ";
         this->lhs->dump(out, indent + 1);
         out << ",\n";
-        _indent(out, indent + 1) << "rhs: ";
+        _indent(out, indent + 1) << "rhs = ";
         this->rhs->dump(out, indent + 1);
         out << "\n";
-        _indent(out, indent) << "}";
+        _indent(out, indent) << ")";
     }
 
 }}

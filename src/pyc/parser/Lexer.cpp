@@ -17,7 +17,6 @@ namespace pyc { namespace parser {
         std::vector<char const*> elements;
         void log(Stack& stack, char const* str)
         {
-            return;
 //std::cout << std::string(elements.size(), ' ') << elements.back()
 //                  << ' ' << str << std::endl;
             std::cout << str << ' ';
@@ -119,6 +118,12 @@ namespace pyc { namespace parser {
 
         TERMINAL_PARSER(NEWLINE, newline)
         {
+            if (*loc == '#')
+            {
+                while (*loc != '\n' && *loc != '\0')
+                    loc++;
+            }
+
             if (PARSE_STR("\r") || PARSE_STR("\n")) {
                 // while (PARSE_STR("\r") || PARSE_STR("\n")) {}
                 return true;
@@ -713,11 +718,14 @@ parse_flag:     switch (*loc)
         PARSER(import_from)
         {
             if (!PARSE(FROM)) return false;
-            bool as_dot = false;
+            bool has_dot = false;
             while (PARSE(DOT) || PARSE(ELLIPSIS)) {
-                as_dot = true;
+                has_dot = true;
             }
-            if (!PARSE(dotted_name) && !as_dot) return false;
+            if (!PARSE(dotted_name))
+            {
+                if (!has_dot) return false;
+            }
             return PARSE(IMPORT) &&
                    (PARSE(MUL) ||
                     (PARSE(LPAR) && PARSE(import_as_names) && PARSE(RPAR)) ||
@@ -761,6 +769,7 @@ parse_flag:     switch (*loc)
         // dotted_name: NAME ('.' NAME)*
         PARSER(dotted_name)
         {
+            if (PARSE(IMPORT)) return false;
             if (!PARSE(IDENTIFIER)) return false;
             while (PARSE(DOT))
                 if (!PARSE(IDENTIFIER)) return false;

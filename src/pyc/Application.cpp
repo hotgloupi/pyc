@@ -97,6 +97,9 @@ namespace pyc {
                 if (!lex.parse(stack))
                     throw std::runtime_error("Invalid syntax");
 
+                for (auto e: stack)
+                    std::cout << e.first << ' ' << e.second << std::endl;
+
             }
             else
             {

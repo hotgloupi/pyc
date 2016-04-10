@@ -168,27 +168,57 @@ namespace pyc { namespace parser {
                     return std::move(res);
                 }
                 else if (_eat(Token::raise))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::RaiseStatement>();
+                }
                 else if (_eat(Token::yield))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::YieldStatement>();
+                }
                 else if (_tok() == Token::import || _tok() == Token::from)
                     return _import_stmt();
                 else if (_eat(Token::global))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::GlobalStatement>();
+                }
                 else if (_eat(Token::nonlocal))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::NonLocalStatement>();
+                }
                 else if (_eat(Token::assert_))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::AssertStatement>();
+                }
                 else if (_eat(Token::if_))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::IfStatement>();
+                }
                 else if (_eat(Token::while_))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::WhileStatement>();
+                }
                 else if (_eat(Token::for_))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::ForStatement>();
+                }
                 else if (_eat(Token::try_))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::TryStatement>();
+                }
                 else if (_eat(Token::with))
+                {
+                    NOT_IMPLEMENTED()
                     return make_unique<ast::WithStatement>();
+                }
                 else if (_eat(Token::def))
                 {
                     auto fn = make_unique<ast::FunctionDefinition>();
@@ -201,18 +231,127 @@ namespace pyc { namespace parser {
                     return std::move(fn);
                 }
                 else if (_eat(Token::class_))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::ClassDefinition>();
+                }
                 else if (_eat(Token::at))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::DecoratedDefinition>();
+                }
                 else if (_eat(Token::async))
+                {
+                    NOT_IMPLEMENTED();
                     return make_unique<ast::AsyncDefinition>();
+                }
+
+                // Everything failed, we can try to read an "expr_stmt"
+                // expr_stmt: testlist_star_expr (augassign (yield_expr|testlist) |
+                //                      ('=' (yield_expr|testlist_star_expr))*)
+                // testlist_star_expr: (test|star_expr) (',' (test|star_expr))* [',']
+                // augassign: ('+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' |
+                //             '|=' | '^=' | '<<=' | '>>=' | '**=' | '//=')
+
+                auto lhs = _expression_list();
+                if (_is_one_of(Token::newline, Token::semicolon))
+                    return make_unique<ast::ExpressionStatement>(std::move(lhs));
+                else if (_is_one_of(Token::equal,
+                                    Token::plus_equal,
+                                    Token::minus_equal,
+                                    Token::star_equal,
+                                    Token::at_equal,
+                                    Token::slash_equal,
+                                    Token::percent_equal,
+                                    Token::ampersand_equal,
+                                    Token::pipe_equal,
+                                    Token::not_equal,
+                                    Token::left_shift_equal,
+                                    Token::right_shift_equal,
+                                    Token::double_star_equal,
+                                    Token::double_slash_equal
+                                    ))
+                {
+                    auto token = _eat();
+                    auto rhs = _expression_list();
+                    return make_unique<ast::Assignment>(
+                        make_unique<ast::BinaryExpression>(
+                            token,
+                            std::move(lhs),
+                            std::move(rhs)
+                        )
+                    );
+                }
+
                 throw std::runtime_error("Invalid token: " + str(_tok()) +
                                          " \"" + _str() + "\"");
             }
 
+            // import_stmt: import_name | import_from
+            // import_name: 'import' dotted_as_names
+            // import_from: ('from' (('.' | '...')* dotted_name | ('.' | '...')+)
+            //               'import' ('*' | '(' import_as_names ')' | import_as_names))
+            // import_as_name: NAME ['as' NAME]
+            // dotted_as_name: dotted_name ['as' NAME]
+            // import_as_names: import_as_name (',' import_as_name)* [',']
+            // dotted_as_names: dotted_as_name (',' dotted_as_name)*
+            // dotted_name: NAME ('.' NAME)*
             Ptr<ast::Statement> _import_stmt()
             {
-                return nullptr;
+                std::vector<std::string> from;
+                typedef ast::ImportStatement::Style ImportStyle;
+                ImportStyle style = ImportStyle::absolute;
+
+                if (_eat(Token::from))
+                {
+                    if (_eat(Token::dot))
+                    {
+                        if (_eat(Token::dot))
+                            style = ImportStyle::relative_to_parent;
+                        else
+                            style = ImportStyle::relative_to_current;
+                    }
+                    from = _dotted_name();
+                }
+                _consume(Token::import);
+                std::vector<ast::ImportStatement::ImportAs> imports;
+                while (true)
+                {
+                    ast::ImportStatement::ImportAs import_as;
+                    import_as.import = _dotted_name();
+                    if (_eat(Token::as))
+                    {
+                        import_as.as = _str();
+                        _eat();
+                    }
+                    imports.emplace_back(std::move(import_as));
+                    _eat(Token::comma);
+                    if (_eat_newlines())
+                        break;
+                }
+                return make_unique<ast::ImportStatement>(style,
+                                                         std::move(from),
+                                                         std::move(imports));
+            }
+
+            std::vector<std::string> _dotted_name()
+            {
+                std::vector<std::string> res;
+                while (true)
+                {
+                    if (_eat(Token::dot))
+                    {
+                        continue;
+                    }
+                    else if (_tok() == Token::identifier)
+                    {
+                        res.emplace_back(_str());
+                        _eat();
+                    }
+                    else
+                        break;
+                }
+                return res;
             }
 
             template<typename... Tokens>
