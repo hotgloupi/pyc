@@ -6,12 +6,12 @@
 
 namespace pyc { namespace ast {
 
-    static std::vector<std::string> split_dotted_name(std::string const& name)
-    {
-        std::vector<std::string> res;
-        boost::split(res, name, boost::is_any_of("."));
-        return res;
-    }
+    //static std::vector<std::string> split_dotted_name(std::string const& name)
+    //{
+    //    std::vector<std::string> res;
+    //    boost::split(res, name, boost::is_any_of("."));
+    //    return res;
+    //}
 
     ImportStatement::ImportStatement(Style style,
                                      std::vector<std::string> from,
@@ -24,7 +24,7 @@ namespace pyc { namespace ast {
     void ImportStatement::dump(std::ostream& out, unsigned indent) const
     {
         out << "ImportStatement(\n";
-        _indent(out, indent + 1) << "style = " << _style << ",\n";
+        _indent(out, indent + 1) << "style = \"" << _style << "\",\n";
         _indent(out, indent + 1) << "from = \"" << boost::join(_from, ".") << "\",\n";
         _indent(out, indent + 1) << "imports = [\n";
         for (auto&& import: _imports)

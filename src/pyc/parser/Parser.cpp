@@ -135,7 +135,13 @@ namespace pyc { namespace parser {
 
             Ptr<ast::Block> _indented_block()
             {
-                _eat_newlines();
+                if (!_eat_newlines())
+                {
+                    // One line block
+                    auto block = make_unique<ast::Block>();
+                    block->statements.emplace_back(_stmt());
+                    return block;
+                }
                 _consume(Token::indent);
                 auto res = _block();
                 if (_tok() != Token::eof)

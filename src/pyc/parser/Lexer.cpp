@@ -17,6 +17,7 @@ namespace pyc { namespace parser {
         std::vector<char const*> elements;
         void log(Stack& stack, char const* str)
         {
+            return;
 //std::cout << std::string(elements.size(), ' ') << elements.back()
 //                  << ' ' << str << std::endl;
             std::cout << str << ' ';
