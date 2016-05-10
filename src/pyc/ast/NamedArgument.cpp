@@ -1,12 +1,13 @@
-#include "ReturnStatement.hpp"
+#include "NamedArgument.hpp"
 
 #include <iostream>
 
 namespace pyc { namespace ast {
 
-    void ReturnStatement::dump(std::ostream& out, unsigned indent) const
+    void NamedArgument::dump(std::ostream& out, unsigned indent) const
     {
-        out << "ReturnStatement(\n";
+        out << "NamedArgument(\n";
+        _indent(out, indent + 1) << "name = \"" << this->name << "\",\n";
         _indent(out, indent + 1) << "value = ";
         this->value->dump(out, indent + 1);
         out << "\n";

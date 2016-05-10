@@ -22,8 +22,9 @@ include_dirs = [
 flags = [
     '-Wall',
     '-Wextra',
-    '-std=c++11',
-    '-stdlib=libc++'
+    '-std=c++14',
+    #'-stdlib=libc++'
+    #'-stdlib=libstdc++'
     '-x', 'c++',
 ]
 

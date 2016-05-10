@@ -12,7 +12,8 @@ namespace pyc { namespace ast {
 
     public:
         FunctionCall(Ptr<Expression> callable, Ptr<Expression> args)
-          : expression(std::move(callable))
+          : Expression(NodeKind::function_call)
+          , expression(std::move(callable))
           , args(std::move(args))
         {}
 

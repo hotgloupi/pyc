@@ -13,8 +13,10 @@ namespace pyc { namespace ast {
 
     public:
         explicit String(std::string value)
-          : value(std::move(value))
+          : Expression(NodeKind::string)
+          , value(std::move(value))
         {}
+
     public:
         void dump(std::ostream& out, unsigned indent = 0) const override;
     };

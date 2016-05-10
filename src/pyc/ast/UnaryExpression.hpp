@@ -14,7 +14,8 @@ namespace pyc { namespace ast {
     public:
         UnaryExpression(parser::Token token,
                         Ptr<Expression> expression)
-          : token(token)
+          : Expression(NodeKind::unary_expression)
+          , token(token)
           , expression(std::move(expression))
         {}
     };

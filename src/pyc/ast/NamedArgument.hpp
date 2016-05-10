@@ -2,18 +2,18 @@
 
 #include <pyc/ast/Expression.hpp>
 
-#include <string>
-
 namespace pyc { namespace ast {
 
-    class Number : public Expression
+    class NamedArgument : public Expression
     {
     public:
-        std::string const value;
+        std::string const name;
+        ConstPtr<Expression> value;
 
     public:
-        explicit Number(std::string value)
-          : Expression(NodeKind::number)
+        NamedArgument(std::string name, Ptr<Expression> value)
+          : Expression(NodeKind::named_argument)
+          , name(std::move(name))
           , value(std::move(value))
         {}
 

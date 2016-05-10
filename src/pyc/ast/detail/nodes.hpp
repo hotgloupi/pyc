@@ -1,0 +1,43 @@
+
+#ifndef PYC_AST_DETAIL_NODE_CASE
+# error "You must define PYC_AST_DETAIL_NODE_CASE first"
+#endif
+
+PYC_AST_DETAIL_NODE_CASE(assert_statement, AssertStatement)
+PYC_AST_DETAIL_NODE_CASE(assignment, Assignment)
+PYC_AST_DETAIL_NODE_CASE(async_definition, AsyncDefinition)
+PYC_AST_DETAIL_NODE_CASE(binary_expression, BinaryExpression)
+PYC_AST_DETAIL_NODE_CASE(block, Block)
+PYC_AST_DETAIL_NODE_CASE(break_statement, BreakStatement)
+PYC_AST_DETAIL_NODE_CASE(class_definition, ClassDefinition)
+PYC_AST_DETAIL_NODE_CASE(continue_statement, ContinueStatement)
+PYC_AST_DETAIL_NODE_CASE(decorated_definition, DecoratedDefinition)
+PYC_AST_DETAIL_NODE_CASE(del_statement, DelStatement)
+PYC_AST_DETAIL_NODE_CASE(expression, Expression)
+PYC_AST_DETAIL_NODE_CASE(expression_list, ExpressionList)
+PYC_AST_DETAIL_NODE_CASE(expression_statement, ExpressionStatement)
+PYC_AST_DETAIL_NODE_CASE(for_statement, ForStatement)
+PYC_AST_DETAIL_NODE_CASE(function_call, FunctionCall)
+PYC_AST_DETAIL_NODE_CASE(function_definition, FunctionDefinition)
+PYC_AST_DETAIL_NODE_CASE(get_item, GetItem)
+PYC_AST_DETAIL_NODE_CASE(global_statement, GlobalStatement)
+PYC_AST_DETAIL_NODE_CASE(identifier, Identifier)
+PYC_AST_DETAIL_NODE_CASE(if_statement, IfStatement)
+PYC_AST_DETAIL_NODE_CASE(named_argument, NamedArgument)
+PYC_AST_DETAIL_NODE_CASE(node, Node)
+PYC_AST_DETAIL_NODE_CASE(non_local_statement, NonLocalStatement)
+PYC_AST_DETAIL_NODE_CASE(number, Number)
+PYC_AST_DETAIL_NODE_CASE(pass_statement, PassStatement)
+PYC_AST_DETAIL_NODE_CASE(raise_statement, RaiseStatement)
+PYC_AST_DETAIL_NODE_CASE(return_statement, ReturnStatement)
+PYC_AST_DETAIL_NODE_CASE(slice, Slice)
+PYC_AST_DETAIL_NODE_CASE(statement, Statement)
+PYC_AST_DETAIL_NODE_CASE(string, String)
+PYC_AST_DETAIL_NODE_CASE(try_statement, TryStatement)
+PYC_AST_DETAIL_NODE_CASE(unary_expression, UnaryExpression)
+PYC_AST_DETAIL_NODE_CASE(while_statement, WhileStatement)
+PYC_AST_DETAIL_NODE_CASE(with_statement, WithStatement)
+PYC_AST_DETAIL_NODE_CASE(yield_statement, YieldStatement)
+PYC_AST_DETAIL_NODE_CASE(import_statement, ImportStatement)
+
+#undef PYC_AST_DETAIL_NODE_CASE

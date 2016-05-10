@@ -16,7 +16,8 @@ namespace pyc { namespace ast {
     ImportStatement::ImportStatement(Style style,
                                      std::vector<std::string> from,
                                      ImportAsList imports)
-      : _style(style)
+      : Statement(NodeKind::import_statement)
+      , _style(style)
       , _from(std::move(from))
       , _imports(std::move(imports))
     {}

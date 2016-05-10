@@ -12,7 +12,8 @@ namespace pyc { namespace ast {
 
     public:
         explicit GetItem(Ptr<Expression> expression, Ptr<Slice> slice)
-          : expression(std::move(expression))
+          : Expression(NodeKind::get_item)
+          , expression(std::move(expression))
           , slice(std::move(slice))
         {}
 

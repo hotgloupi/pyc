@@ -20,6 +20,7 @@
 #include <pyc/ast/GlobalStatement.hpp>
 #include <pyc/ast/Identifier.hpp>
 #include <pyc/ast/IfStatement.hpp>
+#include <pyc/ast/NamedArgument.hpp>
 #include <pyc/ast/Node.hpp>
 #include <pyc/ast/NonLocalStatement.hpp>
 #include <pyc/ast/Number.hpp>

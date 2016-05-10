@@ -227,14 +227,16 @@ namespace pyc { namespace parser {
                 }
                 else if (_eat(Token::def))
                 {
-                    auto fn = make_unique<ast::FunctionDefinition>();
                     auto name = _consume(Token::identifier);
-                    fn->name = std::string(name.begin, name.end);
                     _consume(Token::left_parenthesis);
+                    auto args = _args();
                     _consume(Token::right_parenthesis);
                     _consume(Token::colon);
-                    fn->body = _indented_block();
-                    return std::move(fn);
+                    return make_unique<ast::FunctionDefinition>(
+                        std::string(name.begin, name.end),
+                        std::move(args),
+                        _indented_block()
+                    );
                 }
                 else if (_eat(Token::class_))
                 {
@@ -479,10 +481,23 @@ namespace pyc { namespace parser {
                 auto res = make_unique<ast::ExpressionList>();
                 while (_tok() != Token::right_parenthesis)
                 {
-                    res->values.emplace_back(_expression_atom());
+                    auto expr = _expression_atom();
                     if (_eat(Token::equal))
                     {
-                        NOT_IMPLEMENTED();
+                        auto id = dynamic_cast<ast::Identifier const*>(expr.get());
+                        if (id == nullptr)
+                            throw std::runtime_error("Not an identifier ?!");
+
+                        res->values.emplace_back(
+                            make_unique<ast::NamedArgument>(
+                                id->value,
+                                _expression_atom()
+                            )
+                        );
+                    }
+                    else
+                    {
+                        res->values.emplace_back(std::move(expr));
                     }
                     if (!_eat(Token::comma))
                         break;

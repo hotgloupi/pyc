@@ -15,7 +15,8 @@ namespace pyc { namespace ast {
         explicit Slice(Ptr<Expression> from,
                        Ptr<Expression> to,
                        Ptr<Expression> step)
-          : from(std::move(from))
+          : Expression(NodeKind::slice)
+          , from(std::move(from))
           , to(std::move(to))
           , step(std::move(step))
         {}

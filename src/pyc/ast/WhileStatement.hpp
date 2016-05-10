@@ -6,6 +6,10 @@ namespace pyc { namespace ast {
 
     class WhileStatement : public Statement
     {
+    public:
+        WhileStatement()
+          : Statement(NodeKind::while_statement)
+        {}
     };
 
 }}

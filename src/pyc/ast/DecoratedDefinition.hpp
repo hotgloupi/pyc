@@ -6,6 +6,10 @@ namespace pyc { namespace ast {
 
     class DecoratedDefinition : public Statement
     {
+    public:
+        DecoratedDefinition()
+          : Statement(NodeKind::decorated_definition)
+        {}
     };
 
 }}

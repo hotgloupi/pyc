@@ -3,6 +3,7 @@ return function(build)
     local cxx = require('configure.lang.cxx.compiler').find{
         build = build,
         standard = 'c++11',
+        --        standard_library = 'libstdc++',
     }
 
     local boost = require('configure.modules').boost.find{

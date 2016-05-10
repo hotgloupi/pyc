@@ -16,7 +16,8 @@ namespace pyc { namespace ast {
         BinaryExpression(parser::Token token,
                          Ptr<Expression> lhs,
                          Ptr<Expression> rhs)
-          : token(token)
+          : Expression(NodeKind::binary_expression)
+          , token(token)
           , lhs(std::move(lhs))
           , rhs(std::move(rhs))
         {}

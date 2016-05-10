@@ -10,6 +10,13 @@ namespace pyc { namespace ast {
     {
     public:
         std::vector<Ptr<Expression>> values;
+
+    public:
+        ExpressionList()
+          : Expression(NodeKind::expression_list)
+        {}
+
+    public:
         void dump(std::ostream& out, unsigned indent = 0) const override;
     };
 

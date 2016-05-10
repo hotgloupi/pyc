@@ -11,7 +11,8 @@ namespace pyc { namespace ast {
 
     public:
         DelStatement(Ptr<Expression> exprlist)
-            : _exprlist(std::move(exprlist))
+            : Statement(NodeKind::del_statement)
+            , _exprlist(std::move(exprlist))
         {}
     };
 

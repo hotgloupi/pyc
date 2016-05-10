@@ -9,6 +9,12 @@ namespace pyc { namespace ast {
     {
     public:
         Ptr<Expression> value;
+
+    public:
+        ReturnStatement()
+          : Statement(NodeKind::return_statement)
+        {}
+
     public:
         void dump(std::ostream& out, unsigned indent = 0) const override;
     };
