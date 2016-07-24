@@ -1,0 +1,5 @@
+#!/bin/sh
+
+DIR=$(python3 -c 'import os, sys; print(os.path.dirname(os.path.abspath(sys.argv[1])))' $0)
+
+PYTHONPATH=$PYTHONPATH:$DIR/../src python3 -mpyc "$@"
