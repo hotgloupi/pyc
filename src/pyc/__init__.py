@@ -1,6 +1,7 @@
 import argparse
 
-from .parser import parse_file
+from .parser import parse
+from .parser.lexer import lex_file_input
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(prog = 'pyc')
@@ -18,4 +19,7 @@ def main():
     import sys
     argument_parser = make_argument_parser()
     args = argument_parser.parse_args()
-    ast = parse_file(file = args.file[0])
+    with open(args.file[0]) as f:
+        tokens = lex_file_input(f.read())
+    ast = parse(tokens)
+    print(ast)

@@ -1,4 +1,5 @@
 import functools
+import collections
 
 from .token import Token
 
@@ -30,7 +31,7 @@ def terminal_parser(method):
         if parse_method(self):
             token = Token[method.__name__.lstrip('_').upper()]
             string = self._data[start:self._loc]
-            self._tokens.append((token, string))
+            self._tokens.append(Lexeme(token, string, (start, self._loc)))
             if token != Token.NEWLINE:
                 while self.char == ' ':
                     self.incr()
@@ -42,6 +43,8 @@ def lex_file_input(data):
     lexer = Lexer(data)
     lexer._file_input()
     return lexer._tokens
+
+Lexeme = collections.namedtuple('Lexeme', ('token', 'str', 'loc'))
 
 class Lexer:
     def __init__(self, data):
@@ -186,7 +189,7 @@ class Lexer:
                     token = raw and Token.RAW_FORMATTED_STRING or Token.FORMATTED_STRING
                 else:
                     token = raw and Token.RAW_UNICODE or Token.UNICODE
-                self._tokens.append((token, self._data[start:end]))
+                self._tokens.append(Lexeme(token, self._data[start:end], (start, end)))
                 return True
             elif delim_size == 1 and (self.char == '\r' or self.char == '\n'):
                 self._throw()
