@@ -13,3 +13,6 @@ def f(a = 1, b = 2, c = d):
     def g():
         pass
     return g()
+
+def f(a = 1, b):
+    pass

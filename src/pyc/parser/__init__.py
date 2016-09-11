@@ -5,8 +5,7 @@ __all__ = ['parse']
 
 def parse(tokens, file = '<unknown>'):
     parser = Parser(tokens, file)
-    parser.parse()
-    return parser._ast
+    return parser.parse()
 
 
 operator_precedence = {
@@ -45,7 +44,7 @@ class Parser:
         self._end = len(tokens)
 
     def parse(self):
-        self._ast = self._block()
+        return self._block()
 
     @property
     def eof(self):
@@ -56,6 +55,10 @@ class Parser:
         if self.eof:
             self._throw("Unexpected end of stream")
         return self._tokens[self._loc].token
+
+    @property
+    def loc(self):
+        return self._tokens[self._loc].loc
 
     @property
     def str(self):
@@ -98,7 +101,7 @@ class Parser:
             if self.tok in (Token.EOF, Token.DEDENT):
                 break
             block.append(self._stmt())
-        return block
+        return ast.Block(self.loc, block)
 
     def _indented_block(self):
         if not self.eat_newlines():
@@ -112,50 +115,50 @@ class Parser:
 
     def _stmt(self):
         if self.eat(Token.DEL):
-            return ast.DelStatement(self._expression_list())
+            return ast.DelStatement(self.loc, self._expression_list())
         elif self.eat(Token.PASS):
-            return ast.PassStatement()
+            return ast.PassStatement(self.loc, )
         elif self.eat(Token.BREAK):
-            return ast.BreakStatement()
+            return ast.BreakStatement(self.loc, )
         elif self.eat(Token.CONTINUE):
-            return ast.ContinueStatement()
+            return ast.ContinueStatement(self.loc, )
         elif self.eat(Token.RETURN):
-            res = ast.ReturnStatement()
+            res = ast.ReturnStatement(self.loc, )
             if not self.eat_newlines():
                 res.value = self._expression_list()
             return res
         elif self.eat(Token.RAISE):
             NOT_IMPLEMENTED()
-            return ast.RaiseStatement()
+            return ast.RaiseStatement(self.loc, )
         elif self.eat(Token.YIELD):
             NOT_IMPLEMENTED()
-            return ast.YieldStatement()
+            return ast.YieldStatement(self.loc, )
         elif self.tok in (Token.IMPORT, Token.FROM):
             return _import_stmt()
         elif self.eat(Token.GLOBAL):
             NOT_IMPLEMENTED()
-            return ast.GlobalStatement()
+            return ast.GlobalStatement(self.loc, )
         elif self.eat(Token.NONLOCAL):
             NOT_IMPLEMENTED()
-            return ast.NonLocalStatement()
+            return ast.NonLocalStatement(self.loc, )
         elif self.eat(Token.ASSERT):
             NOT_IMPLEMENTED()
-            return ast.AssertStatement()
+            return ast.AssertStatement(self.loc, )
         elif self.eat(Token.IF):
             NOT_IMPLEMENTED()
-            return ast.IfStatement()
+            return ast.IfStatement(self.loc, )
         elif self.eat(Token.WHILE):
             NOT_IMPLEMENTED()
-            return ast.WhileStatement()
+            return ast.WhileStatement(self.loc, )
         elif self.eat(Token.FOR):
             NOT_IMPLEMENTED()
-            return ast.ForStatement()
+            return ast.ForStatement(self.loc, )
         elif self.eat(Token.TRY):
             NOT_IMPLEMENTED()
-            return ast.TryStatement()
+            return ast.TryStatement(self.loc, )
         elif self.eat(Token.WITH):
             NOT_IMPLEMENTED()
-            return ast.WithStatement()
+            return ast.WithStatement(self.loc, )
         elif self.eat(Token.DEF):
             name = self.consume(Token.IDENTIFIER)
             self.consume(Token.LEFT_PARENTHESIS)
@@ -163,19 +166,20 @@ class Parser:
             self.consume(Token.RIGHT_PARENTHESIS)
             self.consume(Token.COLON)
             return ast.FunctionDefinition(
+                self.loc,
                 name,
                 args,
                 self._indented_block()
             )
         elif self.eat(Token.CLASS):
             NOT_IMPLEMENTED()
-            return ast.ClassDefinition()
+            return ast.ClassDefinition(self.loc, )
         elif self.eat(Token.AT):
             NOT_IMPLEMENTED()
-            return ast.DecoratedDefinition()
+            return ast.DecoratedDefinition(self.loc, )
         elif self.eat(Token.ASYNC):
             NOT_IMPLEMENTED()
-            return ast.AsyncDefinition()
+            return ast.AsyncDefinition(self.loc, )
 
         # Everything failed, we can try to read an "expr_stmt"
         # expr_stmt: testlist_star_expr (augassign (yield_expr|testlist) |
@@ -186,7 +190,7 @@ class Parser:
 
         lhs = self._expression_list()
         if self.tok in (Token.NEWLINE, Token.SEMICOLON):
-            return ast.ExpressionStatement(lhs)
+            return ast.ExpressionStatement(self.loc, lhs)
         elif self.tok in (Token.EQUAL,
                             Token.PLUS_EQUAL,
                             Token.MINUS_EQUAL,
@@ -206,6 +210,7 @@ class Parser:
             rhs = self._expression_list()
             return ast.Assignment(
                 ast.BinaryExpression(
+                    self.loc,
                     token,
                     lhs,
                     rhs
@@ -245,7 +250,7 @@ class Parser:
             self.eat(Token.COMMA)
             if self.eat_newlines():
                 break
-        return ast.ImportStatement(style, from_, imports)
+        return ast.ImportStatement(self.loc, style, from_, imports)
 
     def _dotted_name(self):
         res = []
@@ -267,7 +272,7 @@ class Parser:
             to = self._expression_atom();
             if self.eat(Token.COLON):
                 step = self._expression_atom();
-        return ast.Slice(from_, to, step);
+        return ast.Slice(self.loc, from_, to, step);
 
     def _expression_atom(self):
         if self.tok in (Token.PLUS, Token.MINUS, Token.TILDE):
@@ -282,10 +287,10 @@ class Parser:
             # XXX parse lambda
             NOT_IMPLEMENTED()
         elif self.tok == Token.IDENTIFIER:
-            res = ast.Identifier(self.str)
+            res = ast.Identifier(self.loc, self.str)
             self.eat()
         elif self.tok == Token.UNICODE:
-            res = ast.String(self.str)
+            res = ast.String(self.loc, self.str)
             self.eat()
         elif self.tok == Token.RAW_UNICODE:
             NOT_IMPLEMENTED()
@@ -298,7 +303,7 @@ class Parser:
         elif self.tok == Token.RAW_FORMATTED_STRING:
             NOT_IMPLEMENTED()
         elif self.tok == Token.NUMBER:
-            res = ast.Number(self.str)
+            res = ast.Number(self.loc, self.str)
             self.eat()
         elif self.tok == Token.ELLIPSIS:
             NOT_IMPLEMENTED()
@@ -309,11 +314,11 @@ class Parser:
             if self.eat(Token.LEFT_PARENTHESIS):
                 args = self._args()
                 self.consume(Token.RIGHT_PARENTHESIS)
-                res = ast.FunctionCall(res, args)
+                res = ast.FunctionCall(self.loc, res, args)
             elif self.eat(Token.LEFT_SQUARE_BRACKET):
                 slice = _slice()
                 self.consume(Token.RIGHT_SQUARE_BRACKET)
-                res = ast.GetItem(res, slice)
+                res = ast.GetItem(self.loc, res, slice)
             elif self.eat(Token.DOT):
                 NOT_IMPLEMENTED()
             else:
@@ -322,21 +327,21 @@ class Parser:
 
 
     def _args(self):
-        res = ast.ExpressionList();
+        values = []
         while self.tok != Token.RIGHT_PARENTHESIS:
             expr = self._expression_atom();
             if self.eat(Token.EQUAL):
                 if not isinstance(expr, ast.Identifier):
                     self._throw("Expected an identifier")
 
-                res.values.append(
-                    ast.NamedArgument(expr.value, self._expression_atom())
+                values.append(
+                    ast.NamedArgument(self.loc, expr.name, self._expression_atom())
                 )
             else:
-                res.values.append(expr)
+                values.append(expr)
             if not self.eat(Token.COMMA):
                 break;
-        return res;
+        return ast.ExpressionList(self.loc, values);
 
     # The operator precedence or 0
     def _precedence(self, op):
@@ -364,7 +369,7 @@ class Parser:
             next_precedence = self._precedence(self.tok);
             if next_precedence > precedence:
                 rhs = self._expression(precedence + 1, rhs);
-            lhs = ast.BinaryExpression(op, lhs, rhs);
+            lhs = ast.BinaryExpression(self.loc, op, lhs, rhs);
 
 
     #// Parse an expression or a list of expression
@@ -381,7 +386,7 @@ class Parser:
 
             if self.eat(Token.COMMA):
                 if list == nullptr:
-                    list = ast.ExpressionList();
+                    list = ast.ExpressionList(self.loc, );
                 if current_expression != nullptr:
                     list.values.append(current_expression);
             else:
