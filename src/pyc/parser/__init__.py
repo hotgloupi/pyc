@@ -134,7 +134,7 @@ class Parser:
             NOT_IMPLEMENTED()
             return ast.YieldStatement(self.loc, )
         elif self.tok in (Token.IMPORT, Token.FROM):
-            return _import_stmt()
+            return self._import_stmt()
         elif self.eat(Token.GLOBAL):
             NOT_IMPLEMENTED()
             return ast.GlobalStatement(self.loc, )
@@ -209,12 +209,10 @@ class Parser:
             token = self.eat()
             rhs = self._expression_list()
             return ast.Assignment(
-                ast.BinaryExpression(
-                    self.loc,
-                    token,
-                    lhs,
-                    rhs
-                )
+                self.loc,
+                op = token,
+                lhs = lhs,
+                rhs = rhs
             )
         self._throw("Invalid token: %s \"%s\"" % (self.tok, self.str))
 
@@ -237,14 +235,14 @@ class Parser:
                     style = ImportStyle.relative_to_parent
                 else:
                     style = ImportStyle.relative_to_current
-            from_ = _dotted_name()
+            from_ = self._dotted_name()
         self.consume(Token.IMPORT)
         imports = []
         while True:
-            import_as = ast.ImportStatement.ImportAs()
-            import_as.import_ = _dotted_name()
+            import_as = ast.ImportStatement.Import()
+            import_as.dotted_name = self._dotted_name()
             if self.eat(Token.AS):
-                import_as.as_ = self.str
+                import_as.rename = self.str
                 self.eat()
             imports.append(import_as)
             self.eat(Token.COMMA)
@@ -259,7 +257,7 @@ class Parser:
                 continue
             elif self.tok == Token.IDENTIFIER:
                 res.append(self.str)
-                _eat()
+                self.eat()
             else:
                 break
         return res;
@@ -385,9 +383,9 @@ class Parser:
             assert(current_expression != None);
 
             if self.eat(Token.COMMA):
-                if list == nullptr:
-                    list = ast.ExpressionList(self.loc, );
-                if current_expression != nullptr:
+                if list is None:
+                    list = ast.ExpressionList(self.loc, []);
+                if current_expression is not None:
                     list.values.append(current_expression);
             else:
                 if list is None:

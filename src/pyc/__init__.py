@@ -22,5 +22,7 @@ def main():
     args = argument_parser.parse_args()
     with open(args.file[0]) as f:
         tokens = lex_file_input(f.read())
-    for ancestors, node in ast.walk(parse(tokens)):
-        print('#' * len(ancestors), node)
+
+    print(ast.dump(parse(tokens)))
+    #for ancestors, node in ast.walk(parse(tokens)):
+    #    print('#' * len(ancestors), node)

@@ -1,5 +1,4 @@
-
-import itertools
+from enum import Enum
 
 class NodeCreator(type):
 
@@ -31,7 +30,7 @@ class NodeCreator(type):
                     )
                 )
             self.loc = loc
-            for k, v in itertools.zip_longest(fields,  values):
+            for k, v in zip(fields,  values):
                 setattr(self, k, v)
         init.__name__ = '__init__'
         return init
@@ -50,13 +49,13 @@ class AssertStatement(Node):
     fields = ('expressions',)
 
 class Assignment(Node):
-    fields = ('lhs', 'rhs',)
+    fields = ('op', 'lhs', 'rhs',)
 
 class AsyncDefinition(Node):
     fields = ('definition',)
 
 class BinaryExpression(Node):
-    fields = ('lhs', 'rhs', )
+    fields = ('op', 'lhs', 'rhs', )
 
 class BreakStatement(Node):
     fields = ()
@@ -105,8 +104,18 @@ class Identifier(Node):
 
 class IfStatement(Node):
     fields = () #XXX
+
 class ImportStatement(Node):
-    fields = () #XXX
+    class Style(Enum):
+        absolute = 1
+        relative_to_parent = 2
+        relative_to_current = 3
+
+    class Import:
+        dotted_name = None
+        rename = None
+
+    fields = ('style', 'from_', 'imports')
 
 class NamedArgument(Node):
     fields = ('name', 'value', )

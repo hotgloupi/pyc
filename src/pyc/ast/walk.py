@@ -1,4 +1,5 @@
 from .nodes import Node
+from .iter import iter_child_nodes
 
 __all__ =  ['walk']
 
@@ -7,11 +8,6 @@ def walk(node : Node, ancestors : tuple = ()):
         return
     yield ancestors, node
     ancestors += (node, )
-    for field in node.fields:
-        child = getattr(node, field)
-        if hasattr(child, '__iter__'):
-            for n in child:
-                yield from walk(n, ancestors = ancestors)
-        else:
-            yield from walk(child, ancestors = ancestors)
+    for child in iter_child_nodes(node):
+        yield from walk(child, ancestors = ancestors)
 

@@ -30,7 +30,10 @@ class Module:
         if context is None:
             context = Context.get_global()
         self.context = context
-        self.ref = lib.LLVMModuleCreateWithNameInContext(name.encode('utf8'), context.ref)
+        self.ref = lib.LLVMModuleCreateWithNameInContext(
+            name.encode('utf8'),
+            context.ref
+        )
 
     def __del__(self):
         lib.LLVMDisposeModule(self.ref)
