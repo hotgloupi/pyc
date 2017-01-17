@@ -4,7 +4,13 @@ class NodeCreator(type):
 
     def __new__(cls, name, bases, attrs):
         if name != 'Node':
-            attrs['__init__'] = cls.make_ctor(attrs['fields'])
+            if attrs.get('fields') is None:
+                if any(hasattr(b, 'fields') for b in bases):
+                    pass # Let's use parents constructor
+                else:
+                    raise Exception("You must specify a fields attribute in class '%s'" % name)
+            else:
+                attrs['__init__'] = cls.make_ctor(attrs['fields'], bases)
         return super().__new__(cls, name, bases, attrs)
 
     #def __call__(cls, *args, **kw):
@@ -12,9 +18,11 @@ class NodeCreator(type):
     #    return super().__call__(*args, **kw)
 
     @classmethod
-    def make_ctor(cls, fields):
-        assert isinstance(fields, tuple)
+    def make_ctor(cls, fields, bases):
         def init(self, loc, *args, **kw):
+            if self.__class__ == Node:
+                return
+
             values = list(args)
             if len(fields) > len(args):
                 for field in fields[len(args):]:
@@ -76,10 +84,10 @@ class Expression(Node):
     fields = ('value',)
 
 class Block(Node):
-    fields = ('values', )
+    fields = ('statements', )
 
 class ExpressionList(Node):
-    fields = ('values', )
+    fields = ('expressions', )
 
 class ExpressionStatement(Node):
     fields = ('expression', )
@@ -88,7 +96,7 @@ class ForStatement(Node):
     fields = ()
 
 class FunctionCall(Node):
-    fields = ('expr', 'args')
+    fields = ('expression', 'arguments')
 
 class FunctionDefinition(Node):
     fields = ('name', 'args', 'body', )
@@ -136,7 +144,7 @@ class RaiseStatement(Node):
     fields = () #XXX
 
 class ReturnStatement(Node):
-    fields = () #XXX
+    fields = ('expression', )
 
 class Slice(Node):
     fields = () #XXX

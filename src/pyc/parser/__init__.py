@@ -67,9 +67,9 @@ class Parser:
         return self._tokens[self._loc].str
 
     def eat(self, *tokens):
-        """ When a tokens are provided, returns True and advance if one of them
+        """ When tokens are provided, returns True and advance if one of them
         matches the current token, otherwise returns False.
-        If no token are provided, advance and return the eaten token.
+        If no token is provided, advance and return the eaten token.
         """
         if not tokens:
             token = self.tok
@@ -123,10 +123,10 @@ class Parser:
         elif self.eat(Token.CONTINUE):
             return ast.ContinueStatement(self.loc, )
         elif self.eat(Token.RETURN):
-            res = ast.ReturnStatement(self.loc, )
+            value = None
             if not self.eat_newlines():
-                res.value = self._expression_list()
-            return res
+                value = self._expression_list()
+            return ast.ReturnStatement(self.loc, value)
         elif self.eat(Token.RAISE):
             NOT_IMPLEMENTED()
             return ast.RaiseStatement(self.loc, )
