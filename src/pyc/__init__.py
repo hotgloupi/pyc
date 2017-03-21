@@ -30,5 +30,4 @@ def main():
 
     print("######### Core AST")
     core_ast = core.convert(py_ast)
-    print("######### Core AST created:", core_ast)
     print(ast.dump(core_ast))

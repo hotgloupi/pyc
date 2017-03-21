@@ -1179,7 +1179,7 @@ class Lexer:
     def _atom(self):
         if self._lpar():
             if not self._yield_expr() or not self._testlist_comp():
-                return false
+                return False
             return self._rpar()
         elif self._lsquarebracket():
             self._testlist_comp()

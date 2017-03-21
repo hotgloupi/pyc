@@ -53,10 +53,20 @@ class Return(Node):
 #
 
 class FunctionTemplate(Node):
-    fields = ('definition', 'specializations')
+    fields = ('definition', 'specializations', 'scope')
 
 class LiteralInteger(Node):
     fields = ('value',)
+
+class Function(Node):
+    fields = ('name', 'signature', 'template', 'body')
+
+class FunctionCall(Node):
+    fields = ('fn', 'args')
+
+class PrimaryOperator(Node):
+    fields = ('op', 'args')
+
 #
 #class LitInt(Node):
 #    fields = ("n")

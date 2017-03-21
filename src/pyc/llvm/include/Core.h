@@ -361,11 +361,11 @@ typedef enum {
  * LLVMAttributeFunctionIndex or a parameter number from 1 to N.
  */
 enum {
-  LLVMAttributeReturnIndex = 0U,
+  LLVMAttributeReturnIndex = 0,
   // ISO C restricts enumerator values to range of 'int'
   // (4294967295 is too large)
   // LLVMAttributeFunctionIndex = ~0U,
-  LLVMAttributeFunctionIndex = -1,
+  LLVMAttributeFunctionIndex = 4294967295,
 };
 
 typedef unsigned LLVMAttributeIndex;
