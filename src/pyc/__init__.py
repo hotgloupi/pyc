@@ -1,10 +1,10 @@
 import argparse
 import sys
+import os
 
-from .parser import parse
-from .parser.lexer import lex_file_input
 from . import ast
-from . import core
+
+from .module import Manager
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(prog = 'pyc')
@@ -21,13 +21,7 @@ def make_argument_parser():
 def main():
     argument_parser = make_argument_parser()
     args = argument_parser.parse_args()
-    with open(args.file[0]) as f:
-        tokens = lex_file_input(f.read())
 
-    print("######### Python AST")
-    py_ast = parse(tokens)
-    print(ast.dump(py_ast))
-
-    print("######### Core AST")
-    core_ast = core.convert(py_ast)
-    print(ast.dump(core_ast))
+    manager = Manager()
+    module = manager.load_from_file(os.path.abspath(args.file[0]), '__main__')
+    print(ast.dump(module.core_ast))
