@@ -1,10 +1,9 @@
 import argparse
-import sys
 import os
 
 from . import ast
-
 from .module import Manager
+from . import codegen
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(prog = 'pyc')
@@ -25,3 +24,7 @@ def main():
     manager = Manager()
     module = manager.load_from_file(os.path.abspath(args.file[0]), '__main__')
     print(ast.dump(module.core_ast))
+
+    print("######### LLVM IR")
+    ir = codegen.compile(module.core_ast)
+    print(ir)

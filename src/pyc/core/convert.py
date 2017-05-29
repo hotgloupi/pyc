@@ -120,14 +120,14 @@ class Converter(parser_ast.Visitor):
             name = fn.definition.name,
             signature = [ret, args],
             body = body,
-            template = fn,
         )
-
 
     def visit_FunctionCall(self, node):
         template = self._resolve_function_template(node.expression)
         args = self.visit(node.arguments)
-        fn = template.specializations[tuple(args)] = self._specialize(template, args)
+        fn = \
+            template.specializations[tuple(args)] = \
+            self._specialize(template, args)
         return ast.FunctionCall(
             node.loc,
             fn = fn,

@@ -1,6 +1,7 @@
 from .. import ast as parser_ast
 
 class Node(parser_ast.Node):
+    kind = 'core'
     pass
 
 class Block(Node):
@@ -59,7 +60,7 @@ class LiteralInteger(Node):
     fields = ('value',)
 
 class Function(Node):
-    fields = ('name', 'signature', 'template', 'body')
+    fields = ('name', 'signature', 'body')
 
 class FunctionCall(Node):
     fields = ('fn', 'args')

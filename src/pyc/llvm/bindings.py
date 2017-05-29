@@ -35,7 +35,7 @@ class LLVM:
 class Context:
     def __init__(self):
         self.ffi, self.lib = LLVM.open()
-        self.ref = self.lib.LLVMCreateContext()
+        self.ref = self.lib.LLVMContextCreate()
 
     def __del__(self):
         self.lib.LLVMContextDispose(self.ref)
@@ -50,12 +50,22 @@ class Module:
     def __del__(self):
         self.context.lib.LLVMDisposeModule(self.ref)
 
-    def add_function(self, name, sig):
-        assert self.context.ref == sig.context.ref
-        return Value(
-            ref=self.context.lib.LLVMAddFunction(self.ref,
-                                                 name.encode('utf8'), sig.ref),
-            context=self.context)
+    def add_function(self, name, type):
+        assert self.context.ref == type.context.ref
+        return Function(
+            ref = self.context.lib.LLVMAddFunction(
+                self.ref,
+                name.encode('utf8'),
+                type.ref
+            ),
+            type = type,
+        )
+
+    def __str__(self):
+        cstr = self.context.lib.LLVMPrintModuleToString(self.ref)
+        res = self.context.ffi.string(cstr).decode('utf-8')
+        self.context.lib.LLVMDisposeMessage(cstr)
+        return res
 
 
 class TypeFactory:
@@ -116,12 +126,19 @@ class TypeFactory:
             context=self.context)
 
     def function(self, ret, params, is_vararg=False):
-        cparams = self.context.ffi.new('LLVMTypeRef[]',
-                                       [t.ref for t in params])
+        cparams = self.context.ffi.new(
+            'LLVMTypeRef[]',
+            [t.ref for t in params]
+        )
         return Type(
-            ref=self.context.lib.LLVMFunctionType(ret.ref, cparams,
-                                                  len(params), is_vararg),
-            context=self.context)
+            ref = self.context.lib.LLVMFunctionType(
+                ret.ref,
+                cparams,
+                len(params),
+                is_vararg
+            ),
+            context = self.context
+        )
 
 
 class Type:
@@ -131,6 +148,48 @@ class Type:
 
 
 class Value:
+    def __init__(self, ref, type):
+        self.ref = ref
+        self.type = type
+
+    @property
+    def context(self):
+        return self.type.context
+
+class Function(Value):
+    def add_block(self, name):
+        return Block(
+            ref = self.context.lib.LLVMAppendBasicBlockInContext(
+                self.context.ref,
+                self.ref,
+                name.encode('utf-8')
+            ),
+            context = self.context
+        )
+
+class Block:
     def __init__(self, ref, context):
         self.ref = ref
         self.context = context
+        self.builder = BlockBuilder(self)
+
+    @property
+    def name(self):
+        return self.context.ffi.string(
+            self.context.lib.LLVMGetBasicBlockName(self.ref)
+        ).decode('utf-8')
+
+
+class Builder:
+    def __init__(self, context):
+        self.context = context
+        self.ref = context.lib.LLVMCreateBuilderInContext(context.ref)
+
+    def __del__(self):
+        self.context.lib.LLVMDisposeBuilder(self.ref)
+
+class BlockBuilder(Builder):
+    def __init__(self, block):
+        super().__init__(block.context)
+        self.block = block
+        self.context.lib.LLVMPositionBuilderAtEnd(self.ref, block.ref)

@@ -6,7 +6,7 @@ class NodeCreator(type):
         if name != 'Node':
             if attrs.get('fields') is None:
                 if any(hasattr(b, 'fields') for b in bases):
-                    pass # Let's use parents constructor
+                    pass  # Let's use parents constructor
                 else:
                     raise Exception("You must specify a fields attribute in class '%s'" % name)
             else:
@@ -38,13 +38,15 @@ class NodeCreator(type):
                     )
                 )
             self.loc = loc
-            for k, v in zip(fields,  values):
+            for k, v in zip(fields, values):
                 setattr(self, k, v)
         init.__name__ = '__init__'
         return init
 
 
 class Node(metaclass = NodeCreator):
+    kind = 'ast'
+
     def __str__(self):
         return "<%s(%s) at %s>" % (
             self.__class__.__name__,
