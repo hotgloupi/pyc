@@ -26,5 +26,5 @@ def main():
     print(ast.dump(module.core_ast))
 
     print("######### LLVM IR")
-    ir = codegen.compile(module.core_ast)
+    ir = codegen.compile(module.core_ast, os.path.abspath(args.file[0]))
     print(ir)

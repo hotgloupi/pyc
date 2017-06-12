@@ -24,7 +24,7 @@ class LLVM:
         ffi.cdef(include.read('Core.h'))
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        lib = ffi.dlopen(os.path.join(script_dir, 'lib/libLLVM-3.9.so'))
+        lib = ffi.dlopen(os.path.join(script_dir, 'lib/libLLVM-4.0.so'))
 
         cls.pass_registry = lib.LLVMGetGlobalPassRegistry()
         lib.LLVMInitializeCore(cls.pass_registry)
@@ -71,6 +71,12 @@ class Module:
 class TypeFactory:
     def __init__(self, context):
         self.context = context
+
+    def void(self):
+        return Type(
+            ref = self.context.lib.LLVMVoidTypeInContext(self.context.ref),
+            context = self.context,
+        )
 
     def int(self, bits):
         return Type(
@@ -167,6 +173,13 @@ class Function(Value):
             context = self.context
         )
 
+    @property
+    def last_block(self):
+        return Block(
+            ref = self.context.lib.LLVMGetLastBasicBlock(self.ref),
+            context = self.context
+        )
+
 class Block:
     def __init__(self, ref, context):
         self.ref = ref
@@ -179,7 +192,6 @@ class Block:
             self.context.lib.LLVMGetBasicBlockName(self.ref)
         ).decode('utf-8')
 
-
 class Builder:
     def __init__(self, context):
         self.context = context
@@ -187,6 +199,25 @@ class Builder:
 
     def __del__(self):
         self.context.lib.LLVMDisposeBuilder(self.ref)
+
+    def call(self, fn, args, name = None):
+        cargs = self.context.ffi.new(
+            'LLVMValueRef[]',
+            [t.ref for t in args]
+        )
+        ref = self.context.lib.LLVMBuildCall(
+            self.ref,
+            fn.ref,
+            cargs,
+            len(args),
+            name is not None and name or b""
+        )
+        return Instruction(ref = ref, context = self.context)
+
+class Instruction:
+    def __init__(self, ref, context):
+        self.ref = ref
+        self.context = context
 
 class BlockBuilder(Builder):
     def __init__(self, block):

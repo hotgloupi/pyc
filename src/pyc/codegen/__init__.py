@@ -4,6 +4,7 @@ __all__ = [
     'compile',
 ]
 
-def compile(node):
-    emitter = Emitter()
-    return emitter.visit(node)
+def compile(node, module_name):
+    emitter = Emitter(module_name = module_name)
+    emitter.visit(node)
+    return emitter.module
