@@ -1,18 +1,36 @@
 from .. import ast as parser_ast
 
+from . import ts
+
 class Node(parser_ast.Node):
     kind = 'core'
-    pass
+
+    __type = None
+    @property
+    def type(self):
+        if self.__type is None:
+            return self.make_type()
+
+    def make_type(self):
+        raise NotImplementedError()
 
 class Block(Node):
     fields = ('statements', 'scope')
 
 class Variable(Node):
-    fields = ('id', )
+    fields = ('id', 'ref')
+
+    @property
+    def type(self):
+        return self.ref.type
 
 
 class Return(Node):
     fields = ('value', )
+
+    @property
+    def type(self):
+        return self.value.type
 
 
 #class Var(Node):
@@ -59,14 +77,22 @@ class FunctionTemplate(Node):
 class LiteralInteger(Node):
     fields = ('value',)
 
+    def make_type(self):
+        return ts.Type('int')
+
 class Function(Node):
-    fields = ('name', 'signature', 'body')
+    fields = ('name', 'return_type', 'args', 'body')
 
 class FunctionCall(Node):
     fields = ('fn', 'args')
 
 class PrimaryOperator(Node):
     fields = ('op', 'args')
+
+    @property
+    def type(self):
+        assert len(set(arg.type for arg in self.args)) == 1
+        return self.args[0].type
 
 #
 #class LitInt(Node):

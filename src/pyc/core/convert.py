@@ -21,6 +21,12 @@ class Scope():
     def __setitem__(self, key, value):
         self.values[key] = value
 
+    def __getitem__(self, key):
+        value = self.find(key)
+        if value is None:
+            raise Exception("Couln't find '%s'" % key)
+        return value
+
     def find(self, key):
         value = self.values.get(key)
         if value is not None:
@@ -32,15 +38,29 @@ class Scope():
     @property
     def path(self):
         if self.parent is not None:
-            return str(self.parent) + '.' + self.name
+            return self.parent.path + '.' + self.name
         return self.name
 
     def __repr__(self):
         return '@' + self.path
 
+class Context:
+
+    def __init__(self, scope):
+        self.scope = scope
+        self.return_statements = []
+
+    @property
+    def return_type(self):
+        if not self.return_statements:
+            return None
+        assert len(self.return_statements) == 1
+        return self.return_statements[0].type
+
 class Converter(parser_ast.Visitor):
 
     def __init__(self):
+        self.context = None
         self.scope = None
         self.indent = 0
 
@@ -56,23 +76,20 @@ class Converter(parser_ast.Visitor):
     def debug(self, *args, **kw):
         print('#' * self.indent, *args, **kw)
 
-    def push_scope(self):
-        self.scope = Scope(parent = self.scope)
-        return self.scope
-
-    def pop_scope(self):
+    @contextlib.contextmanager
+    def new_scope(self, name = None):
+        self.scope = Scope(parent = self.scope, name = name)
+        yield self.scope
         assert self.scope is not None
         self.scope = self.scope.parent
 
     def visit_Block(self, node):
-        scope = self.push_scope()
-        res = ast.Block(
-            node.loc,
-            statements = list(filter(None, map(self.visit, node.statements))),
-            scope = scope,
-        )
-        self.pop_scope()
-        return res
+        with self.new_scope() as scope:
+            return ast.Block(
+                node.loc,
+                statements = list(filter(None, map(self.visit, node.statements))),
+                scope = scope,
+            )
 
     def visit_FunctionDefinition(self, node):
         self.scope[node.name] = ast.FunctionTemplate(
@@ -84,10 +101,16 @@ class Converter(parser_ast.Visitor):
         return None
 
     def visit_Identifier(self, node):
-        return ast.Variable(node.loc, id = node.name)
+        return ast.Variable(
+            node.loc,
+            id = node.name,
+            ref = self.scope[node.name]
+        )
 
     def visit_ReturnStatement(self, node):
-        return ast.Return(node.loc, value = self.visit(node.expression))
+        ret = ast.Return(node.loc, value = self.visit(node.expression))
+        self.context.return_statements.append(ret)
+        return ret
 
     def visit_ExpressionList(self, node):
         return self._visit_all(node.expressions)
@@ -104,9 +127,17 @@ class Converter(parser_ast.Visitor):
             raise Exception("'%s' is not a function" % expr.name)
         return fn
 
+    @contextlib.contextmanager
+    def swap_context(self):
+        old_context = self.context
+        self.context = Context(self.scope)
+        yield self.context
+        self.context = old_context
+
     def _visit_function_block(self, body):
-        body = self.visit(body)
-        return None, body
+        with self.swap_context() as ctx:
+            body = self.visit(body)
+            return self.context.return_type, body
 
     @contextlib.contextmanager
     def swap_scope(self, new_scope):
@@ -117,12 +148,19 @@ class Converter(parser_ast.Visitor):
 
     def _specialize(self, fn, args):
         with self.swap_scope(fn.scope):
-            ret, body = self._visit_function_block(fn.definition.body)
+            with self.new_scope('%s#args' % fn.definition.name) as scope:
+                for identifier, arg in zip(fn.definition.args.expressions, args):
+                    scope[identifier.name] = arg
+                return_type, body = self._visit_function_block(fn.definition.body)
 
+        arguments = []
+        for identifier, arg in zip(fn.definition.args.expressions, args):
+            arguments.append(ast.Variable(arg.loc, id = identifier.name, ref = arg))
         return ast.Function(
             fn.loc,
             name = fn.definition.name,
-            signature = [ret, args],
+            return_type = return_type,
+            args = arguments,
             body = body,
         )
 
