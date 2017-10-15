@@ -69,7 +69,7 @@ class Module:
         self.context.lib.LLVMDisposeModule(self.ref)
         self.ref = None
 
-    def add_function(self, name, type):
+    def add_function(self, name, type, linkage = 'private'):
         assert self.context.ref == type.context.ref
         return Function(
             ref = self.context.lib.LLVMAddFunction(
@@ -79,6 +79,7 @@ class Module:
             ),
             type = type,
             module = self,
+            linkage = linkage,
         )
 
     def __str__(self):
@@ -198,9 +199,24 @@ class Value:
 
 class Function(Value):
 
-    def __init__(self, ref, type, module):
+    __linkage_to_string = {}
+    __string_to_linkage = {}
+
+    def __init__(self, ref, type, module, linkage):
         super().__init__(ref, type)
         self.module = module
+        if not self.__linkage_to_string:
+            for value, string in [
+                (self.context.lib.LLVMExternalLinkage, "external"),
+                (self.context.lib.LLVMExternalWeakLinkage, "extern_weak"),
+                (self.context.lib.LLVMAvailableExternallyLinkage, "available_externally"),
+                (self.context.lib.LLVMPrivateLinkage, "private"),
+                (self.context.lib.LLVMInternalLinkage, "internal"),
+                (self.context.lib.LLVMCommonLinkage, "common"),
+            ]:
+                self.__linkage_to_string[value] = string
+                self.__string_to_linkage[string] = value
+        self.linkage = linkage
 
     def add_block(self, name):
         return Block(
@@ -225,6 +241,15 @@ class Function(Value):
             ref = self.context.lib.LLVMGetFirstBasicBlock(self.ref),
             function = self,
         )
+
+    @property
+    def linkage(self):
+        value = self.context.lib.LLVMGetLinkage(self.ref)
+        return self.__linkage_to_string[value]
+
+    @linkage.setter
+    def linkage(self, value):
+        self.context.lib.LLVMSetLinkage(self.ref, self.__string_to_linkage[value])
 
 class Block:
     def __init__(self, ref, function):
@@ -328,6 +353,9 @@ class Builder:
             'Ret',
             value.ref
         )
+
+    def ret_void(self):
+        return self._inst('RetVoid')
 
 
 class Instruction:

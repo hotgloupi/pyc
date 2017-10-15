@@ -101,7 +101,10 @@ class FunctionCall(Node):
     fields = ('expression', 'arguments')
 
 class FunctionDefinition(Node):
-    fields = ('name', 'args', 'body', )
+    fields = ('name', 'parameters', 'annotation', 'body', )
+
+class GetAttr(Node):
+    fields = ('lhs', 'rhs')
 
 class GetItem(Node):
     fields = () #XXX
@@ -125,10 +128,16 @@ class ImportStatement(Node):
         dotted_name = None
         rename = None
 
+        def __str__(self):
+            name = '.'.join(self.dotted_name)
+            if self.rename:
+                return 'Import("%s as %s")' % (name, self.rename)
+            else: return 'Import("%s")' % name
+
     fields = ('style', 'from_', 'imports')
 
-class NamedArgument(Node):
-    fields = ('name', 'value', )
+class Argument(Node):
+    fields = ('name', 'value')
 
 class NodeKind(Node):
     fields = () #XXX
@@ -138,6 +147,9 @@ class NonLocalStatement(Node):
 
 class Number(Node):
     fields = ('value', )
+
+class Parameter(Node):
+    fields = ('name', 'default', 'annotation')
 
 class PassStatement(Node):
     fields = () #XXX

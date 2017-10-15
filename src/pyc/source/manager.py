@@ -23,5 +23,9 @@ class Manager:
 
         src = self.cache.get(path)
         if src is None:
+            #print("Loading source file", path)
             self.cache[path] = src = Source(path)
         return src
+
+    def from_string(self, string, path = None):
+        return Source(path, data = string)

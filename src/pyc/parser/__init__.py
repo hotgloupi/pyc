@@ -1,7 +1,7 @@
 from .. import ast
 from .token import Token
 
-__all__ = ['parse']
+__all__ = ['parse', 'Token']
 
 def parse(tokens, file = '<unknown>'):
     parser = Parser(tokens, file)
@@ -111,7 +111,7 @@ class Parser:
         res = self._block()
         if self.tok != Token.EOF:
             self.consume(Token.DEDENT)
-        return res;
+        return res
 
     def _stmt(self):
         if self.eat(Token.DEL):
@@ -162,21 +162,31 @@ class Parser:
         elif self.eat(Token.DEF):
             name = self.consume(Token.IDENTIFIER)
             self.consume(Token.LEFT_PARENTHESIS)
-            args = self._args()
+            parameters = self._parameters()
             self.consume(Token.RIGHT_PARENTHESIS)
+            annotation = None
+            if self.eat(Token.RIGHT_ARROW):
+                annotation = self._expression_atom()
             self.consume(Token.COLON)
             return ast.FunctionDefinition(
                 self.loc,
                 name,
-                args,
+                parameters,
+                annotation,
                 self._indented_block()
             )
         elif self.eat(Token.CLASS):
             NOT_IMPLEMENTED()
             return ast.ClassDefinition(self.loc, )
         elif self.eat(Token.AT):
-            NOT_IMPLEMENTED()
-            return ast.DecoratedDefinition(self.loc, )
+            decorator = self._expression_atom()
+            if not self.eat_newlines():
+                self._throw("Expect function or class definition after a decorator")
+            return ast.DecoratedDefinition(
+                self.loc,
+                decorator = decorator,
+                definition = self._stmt()
+            )
         elif self.eat(Token.ASYNC):
             NOT_IMPLEMENTED()
             return ast.AsyncDefinition(self.loc, )
@@ -215,6 +225,10 @@ class Parser:
                 rhs = rhs
             )
         self._throw("Invalid token: %s \"%s\"" % (self.tok, self.str))
+
+
+    def _throw(self, str):
+        raise Exception(str)
 
     # import_stmt: import_name | import_from
     # import_name: 'import' dotted_as_names
@@ -260,17 +274,17 @@ class Parser:
                 self.eat()
             else:
                 break
-        return res;
+        return res
 
     def _slice(self):
-        from_ = self._expression_atom();
+        from_ = self._expression_atom()
         to = None
         step = None
         if self.eat(Token.COLON):
-            to = self._expression_atom();
+            to = self._expression_atom()
             if self.eat(Token.COLON):
-                step = self._expression_atom();
-        return ast.Slice(self.loc, from_, to, step);
+                step = self._expression_atom()
+        return ast.Slice(self.loc, from_, to, step)
 
     def _expression_atom(self):
         if self.tok in (Token.PLUS, Token.MINUS, Token.TILDE):
@@ -318,79 +332,103 @@ class Parser:
                 self.consume(Token.RIGHT_SQUARE_BRACKET)
                 res = ast.GetItem(self.loc, res, slice)
             elif self.eat(Token.DOT):
-                NOT_IMPLEMENTED()
+                if self.tok == Token.IDENTIFIER:
+                    rhs = ast.Identifier(self.loc, self.str)
+                    self.eat()
+                else:
+                    NOT_IMPLEMENTED()
+                res = ast.GetAttr(self.loc, lhs = res, rhs = rhs)
             else:
                 break
         return res
 
-
     def _args(self):
         values = []
         while self.tok != Token.RIGHT_PARENTHESIS:
-            expr = self._expression_atom();
+            name = None
+            expr = self._expression_atom()
+            default = None
             if self.eat(Token.EQUAL):
                 if not isinstance(expr, ast.Identifier):
-                    self._throw("Expected an identifier")
-
-                values.append(
-                    ast.NamedArgument(self.loc, expr.name, self._expression_atom())
-                )
-            else:
-                values.append(expr)
+                    self._throw("Expected an identifier, got '%s'" % id)
+                name = expr.name
+                expr = self._expression_atom()
+            values.append(
+                ast.Argument(self.loc, name = name, value = expr)
+            )
             if not self.eat(Token.COMMA):
-                break;
-        return ast.ExpressionList(self.loc, values);
+                break
+        return values
+
+    def _parameters(self):
+        values = []
+        while self.tok != Token.RIGHT_PARENTHESIS:
+            id = self._expression_atom()
+            if not isinstance(id, ast.Identifier):
+                self._throw("Expected an identifier, got '%s'" % id)
+            annotation = None
+            if self.eat(Token.COLON):
+                annotation = self._expression_atom()
+            default = None
+            if self.eat(Token.EQUAL):
+                default = self._expression_atom()
+            values.append(
+                ast.Parameter(self.loc, id.name, default, annotation)
+            )
+            if not self.eat(Token.COMMA):
+                break
+        return values
 
     # The operator precedence or 0
     def _precedence(self, op):
         if self.eof:
             # XXX why this check?
-            return 0;
-        return operator_precedence.get(op, 0);
+            return 0
+        return operator_precedence.get(op, 0)
 
     def _expression(self, last_precedence = -1, lhs = None):
         if lhs is None:
-            lhs = self._expression_atom();
+            lhs = self._expression_atom()
 
         while True:
-            precedence = self._precedence(self.tok);
+            precedence = self._precedence(self.tok)
             if precedence == 0:
                 if self.eat(Token.FOR):
                     # XXX Comprehension list here
-                    NOT_IMPLEMENTED();
-                return lhs;
+                    NOT_IMPLEMENTED()
+                return lhs
             if precedence < last_precedence:
-                return lhs;
+                return lhs
 
-            op = self.eat();
-            rhs = self._expression_atom();
-            next_precedence = self._precedence(self.tok);
+            op = self.eat()
+            rhs = self._expression_atom()
+            next_precedence = self._precedence(self.tok)
             if next_precedence > precedence:
-                rhs = self._expression(precedence + 1, rhs);
-            lhs = ast.BinaryExpression(self.loc, op, lhs, rhs);
+                rhs = self._expression(precedence + 1, rhs)
+            lhs = ast.BinaryExpression(self.loc, op, lhs, rhs)
 
 
     #// Parse an expression or a list of expression
     #// Covers testlist and exprlist
     def _expression_list(self):
         list = None
-        current_expression = None;
+        current_expression = None
         while True:
             if self.tok == Token.NEWLINE or self.tok == Token.EOF:
-                break;
+                break
             else:
-                current_expression = self._expression();
-            assert(current_expression != None);
+                current_expression = self._expression()
+            assert(current_expression != None)
 
             if self.eat(Token.COMMA):
                 if list is None:
-                    list = ast.ExpressionList(self.loc, []);
-                if current_expression is not None:
-                    list.values.append(current_expression);
-            else:
-                if list is None:
-                    return current_expression;
+                    list = ast.ExpressionList(self.loc, [])
                 if current_expression is not None:
                     list.values.append(current_expression)
-                return list;
-        return list;
+            else:
+                if list is None:
+                    return current_expression
+                if current_expression is not None:
+                    list.values.append(current_expression)
+                return list
+        return list

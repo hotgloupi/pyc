@@ -12,7 +12,10 @@ class Node(parser_ast.Node):
             return self.make_type()
 
     def make_type(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Cannot find type for %s" % self)
+
+class ModuleEntry(Node):
+    fields = ('module', 'entry', 'scope')
 
 class Block(Node):
     fields = ('statements', 'scope')
@@ -32,6 +35,13 @@ class Return(Node):
     def type(self):
         return self.value.type
 
+#class Assign(Node):
+#    fields = ("ref", "val", "type")
+#
+#    def __init__(self, ref, val, type=None):
+#        self.ref = ref
+#        self.val = val
+#        self.type = type
 
 #class Var(Node):
 #    fields = ("id", "type")
@@ -85,6 +95,9 @@ class Function(Node):
 
 class FunctionCall(Node):
     fields = ('fn', 'args')
+
+    def make_type(self):
+        return self.fn.return_type
 
 class PrimaryOperator(Node):
     fields = ('op', 'args')

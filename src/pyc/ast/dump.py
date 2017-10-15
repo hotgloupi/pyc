@@ -1,5 +1,7 @@
 from pprint import pformat
 
+from ..tools import Formatter
+
 from .iter import iter_fields
 from .nodes import Node
 
@@ -16,6 +18,5 @@ def dump(node: Node, **kw):
         elif hasattr(node, '__iter__'):
             return [transform(n) for n in node]
         return node
-    kw.setdefault('indent', 1)
-    kw.setdefault('width', 120)
+    return Formatter()(transform(node))
     return pformat(transform(node), **kw)

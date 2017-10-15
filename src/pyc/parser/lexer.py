@@ -41,7 +41,8 @@ def terminal_parser(method):
 
 def lex_file_input(data):
     lexer = Lexer(data)
-    lexer._file_input()
+    if not lexer._file_input():
+        raise Exception("Couldn't lex that")
     return lexer._tokens
 
 Lexeme = collections.namedtuple('Lexeme', ('token', 'str', 'loc'))
@@ -87,7 +88,11 @@ class Lexer:
     @terminal_parser
     def _identifier(self):
         start = self._loc
-        while self.char is not None and (('a' <= self.char <= 'z') or ('A' <= self.char <= 'Z')):
+        while self.char is not None and (
+            ('a' <= self.char <= 'z') or
+            ('A' <= self.char <= 'Z') or
+            (self.char in ('_', ))
+        ):
             self.incr()
         return start != self._loc
 

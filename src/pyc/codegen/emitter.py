@@ -26,21 +26,15 @@ class Emitter:
         self.const_factory = llvm.ConstFactory(self.ctx)
 
     def generate(self, ast_root):
-        main_sig = self.type_factory.function(self.type_factory.int32(), ())
-        self.main = self.module.add_function('main', main_sig)
-        main_entry = self.main.add_block("entry")
-        main_exit = self.main.add_block("exit")
         self.functions = {}
         self.stack = []
-        with self.push_fn(self.main, main_entry, main_exit):
-            zero = self.const_factory.int(self.type_factory.int32(), 0)
-            #retval = self.builder.alloca(zero.type, "retval")
-            self.visit(ast_root)
-            self.builder.branch(main_exit)
-            with main_exit.builder() as builder:
-                builder.position_at_end()
-                #val = builder.store(zero, retval)
-                builder.ret(zero)
+        self.visit(ast_root)
+
+        ftype = self.type_factory.function(
+            ret = self.type_factory.void(),
+            params = [self.type_factory.int32()]
+        )
+        fn = self.module.add_function('exit', ftype, 'external')
 
     @property
     def function_context(self):
@@ -58,6 +52,9 @@ class Emitter:
     def builder(self):
         return self.function_context.builder
 
+    def visit_ModuleEntry(self, node):
+        return self.visit(node.entry)
+
     def visit_Block(self, node):
         #self.fn.add_block(node.scope.path)
         for stmt in node.statements:
@@ -70,8 +67,11 @@ class Emitter:
 
 
     def _make_type(self, type):
-        assert type.name == 'int'
-        return self.type_factory.int64()
+        if type.name == 'int':
+            return self.type_factory.int64()
+        elif type.name == 'void':
+            ret = self.type_factory.void()
+            return ret
 
     def visit_FunctionCall(self, node):
         fn = self._find_function(node.fn)
@@ -100,25 +100,40 @@ class Emitter:
             [self._make_type(arg.type) for arg in node.args]
         )
         fn = self.module.add_function(node.name, sig)
+        if node.name == 'main': # XXX
+            fn.linkage = 'external'
         entry_block = fn.add_block('entry')
         exit_block = fn.add_block('exit')
         self.functions[node] = fn
+        void_ret = (node.return_type.name == 'void') # XXX
         with self.push_fn(fn, entry_block, exit_block):
-            pass
             for var in node.args:
-                self.locals[var.id] =  self.builder.alloca(
+                self.locals[var.id] = self.builder.alloca(
                     self._make_type(var.type),
                     var.id
                 )
-            self.locals['#retval'] = self.builder.alloca(
-                self._make_type(node.return_type),
-                '#retval'
-            )
+            if not void_ret:
+                self.locals['#retval'] = self.builder.alloca(
+                    self._make_type(node.return_type),
+                    '#retval'
+                )
             self.visit(node.body)
+            self.builder.branch(exit_block)
             with exit_block.builder() as builder:
                 builder.position_at_end()
-                retval = builder.load(self.locals['#retval'], '#retval')
-                builder.ret(retval)
+                if void_ret:
+                    builder.ret_void()
+                else:
+                    retval = builder.load(self.locals['#retval'], '#retval')
+                    builder.ret(retval)
+        return fn
+
+    def visit_Extern(self, node):
+        sig = self.type_factory.function(
+            self._make_type(node.return_type),
+            [self._make_type(arg.type) for arg in node.args]
+        )
+        fn = self.module.add_function(node.name, ftype, 'external')
         return fn
 
     def visit_Variable(self, node):
