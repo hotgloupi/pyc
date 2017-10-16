@@ -3,7 +3,7 @@ from . import ast
 from .. import ast as parser_ast
 from .scope import Scope
 
-scope = Scope(None)
+scope = Scope(parent = None, name = '__pyc__')
 
 class ExternFunctionCall(parser_ast.Node):
     fields = ('name', 'arguments', 'signature')

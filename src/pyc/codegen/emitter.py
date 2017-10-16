@@ -24,6 +24,14 @@ class Emitter:
         self.module = mod
         self.type_factory = llvm.TypeFactory(self.ctx)
         self.const_factory = llvm.ConstFactory(self.ctx)
+        self.types = {
+            'int': self.type_factory.int32(),
+            'ssize_t': self.type_factory.int64(),
+            'size_t': self.type_factory.int64(),
+            'void': self.type_factory.void(),
+            'void_p': self.type_factory.void_p(),
+            'char_p': self.type_factory.int_p(8),
+        }
 
     def generate(self, ast_root):
         self.functions = {}
@@ -67,16 +75,15 @@ class Emitter:
 
 
     def _make_type(self, type):
-        if type.name == 'int':
-            return self.type_factory.int64()
-        elif type.name == 'void':
-            ret = self.type_factory.void()
+        ret = self.types.get(type.name)
+        if ret is not None:
             return ret
+        raise Exception("Unknown type '%s'" % type)
 
     def visit_FunctionCall(self, node):
         fn = self._find_function(node.fn)
         args = [self.visit(arg) for arg in node.args]
-        self.builder.call(fn, args)
+        return self.builder.call(fn, args)
 
     @contextlib.contextmanager
     def push_fn(self, fn, entry, exit):
@@ -107,17 +114,21 @@ class Emitter:
         self.functions[node] = fn
         void_ret = (node.return_type.name == 'void') # XXX
         with self.push_fn(fn, entry_block, exit_block):
-            for var in node.args:
-                self.locals[var.id] = self.builder.alloca(
-                    self._make_type(var.type),
-                    var.id
-                )
+            for var, param in zip(node.args, fn.params):
+                print(param)
+                self.locals[var.id] = param
+                #self.builder.alloca(
+                #    self._make_type(var.type),
+                #    var.id
+                #)
             if not void_ret:
                 self.locals['#retval'] = self.builder.alloca(
                     self._make_type(node.return_type),
                     '#retval'
                 )
-            self.visit(node.body)
+            if node.body is not None:
+                self.visit(node.body)
+
             self.builder.branch(exit_block)
             with exit_block.builder() as builder:
                 builder.position_at_end()
@@ -137,7 +148,9 @@ class Emitter:
         return fn
 
     def visit_Variable(self, node):
-        return self.builder.load(self.locals[node.id], node.id)
+        return self.locals[node.id]
+        print("HO YEAR", node, self.locals[node.id])
+        #return self.builder.load(self.locals[node.id], node.id)
 
     def visit_PrimaryOperator(self, node):
         lhs, rhs = map(self.visit, node.args)
@@ -154,7 +167,21 @@ class Emitter:
             node.value
         )
 
+    def visit_LiteralString(self, node):
+        return self.const_factory.string(
+            self._make_type(node.type),
+            node.value,
+            null_terminated = True,
+        )
+
+    def visit_Cast(self, node):
+        print('$'*80, node)
+        to_type = node.to_type
+        value = self.visit(node.value)
+
     def visit(self, node):
         cls = node.__class__.__name__
-        method = getattr(self, 'visit_' + cls)
+        method = getattr(self, 'visit_' + cls, None)
+        if method is None:
+            raise Exception("Unhandled core node '%s'" % node)
         return method(node)

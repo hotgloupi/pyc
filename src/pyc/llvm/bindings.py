@@ -101,8 +101,9 @@ class TypeFactory:
 
     def int(self, bits):
         return Type(
-            ref=self.context.lib.LLVMIntTypeInContext(self.context.ref, bits),
-            context=self.context)
+            ref = self.context.lib.LLVMIntTypeInContext(self.context.ref, bits),
+            context = self.context
+        )
 
     def int1(self):
         return self.int(1)
@@ -167,6 +168,20 @@ class TypeFactory:
             context = self.context
         )
 
+    def pointer(self, element_type, address_space = 0):
+        return Type(
+            ref = self.context.lib.LLVMPointerType(
+                element_type.ref,
+                address_space
+            ),
+            context = self.context
+        )
+
+    def void_p(self, address_space = 0):
+        return self.pointer(self.int8(), address_space)
+
+    def int_p(self, bits, address_space = 0):
+        return self.pointer(self.int(bits), address_space)
 
 class ConstFactory:
 
@@ -183,10 +198,27 @@ class ConstFactory:
             type = type,
         )
 
+    def string(self, type, value, null_terminated = True):
+        return Value(
+            ref = self.context.lib.LLVMConstStringInContext(
+                self.context.ref,
+                value.encode('utf-8'),
+                len(value),
+                not null_terminated, # DontNullTerminate
+            ),
+            type = type
+        )
+
 class Type:
     def __init__(self, ref, context):
         self.ref = ref
         self.context = context
+
+    def __str__(self):
+        cstr = self.context.lib.LLVMPrintTypeToString(self.ref)
+        res = self.context.ffi.string(cstr).decode('utf-8')
+        self.context.lib.LLVMDisposeMessage(cstr)
+        return "<Type '%s'>" % res
 
 class Value:
     def __init__(self, ref, type):
@@ -197,6 +229,14 @@ class Value:
     def context(self):
         return self.type.context
 
+
+
+    def __str__(self):
+        cstr = self.context.lib.LLVMPrintValueToString(self.ref)
+        res = self.context.ffi.string(cstr).decode('utf-8')
+        self.context.lib.LLVMDisposeMessage(cstr)
+        return "<Value '%s' : %s>" % (res, self.type)
+
 class Function(Value):
 
     __linkage_to_string = {}
@@ -205,18 +245,29 @@ class Function(Value):
     def __init__(self, ref, type, module, linkage):
         super().__init__(ref, type)
         self.module = module
+        lib = self.context.lib
         if not self.__linkage_to_string:
             for value, string in [
-                (self.context.lib.LLVMExternalLinkage, "external"),
-                (self.context.lib.LLVMExternalWeakLinkage, "extern_weak"),
-                (self.context.lib.LLVMAvailableExternallyLinkage, "available_externally"),
-                (self.context.lib.LLVMPrivateLinkage, "private"),
-                (self.context.lib.LLVMInternalLinkage, "internal"),
-                (self.context.lib.LLVMCommonLinkage, "common"),
+                (lib.LLVMExternalLinkage, "external"),
+                (lib.LLVMExternalWeakLinkage, "extern_weak"),
+                (lib.LLVMAvailableExternallyLinkage, "available_externally"),
+                (lib.LLVMPrivateLinkage, "private"),
+                (lib.LLVMInternalLinkage, "internal"),
+                (lib.LLVMCommonLinkage, "common"),
             ]:
                 self.__linkage_to_string[value] = string
                 self.__string_to_linkage[string] = value
         self.linkage = linkage
+        self.params = []
+        for i in range(lib.LLVMCountParams(self.ref)):
+            value_ref = lib.LLVMGetParam(self.ref, i)
+            type_ref = lib.LLVMTypeOf(value_ref)
+            self.params.append(
+                Value(
+                    ref = value_ref,
+                    type = Type(ref = type_ref, context = self.context)
+                )
+            )
 
     def add_block(self, name):
         return Block(
@@ -357,6 +408,13 @@ class Builder:
     def ret_void(self):
         return self._inst('RetVoid')
 
+    def pointer_cast(self, value, type, name):
+        return self._inst(
+            'PointerCast',
+            value.ref,
+            type.ref,
+            name.encode('utf-8')
+        )
 
 class Instruction:
     def __init__(self, builder, ref):

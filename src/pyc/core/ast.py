@@ -35,6 +35,13 @@ class Return(Node):
     def type(self):
         return self.value.type
 
+class Cast(Node):
+    fields = ('value', 'to_type')
+
+    @property
+    def type(self):
+        return self.to_type
+
 #class Assign(Node):
 #    fields = ("ref", "val", "type")
 #
@@ -89,6 +96,12 @@ class LiteralInteger(Node):
 
     def make_type(self):
         return ts.Type('int')
+
+class LiteralString(Node):
+    fields = ('value', )
+
+    def make_type(self):
+        return ts.Type('char_p')
 
 class Function(Node):
     fields = ('name', 'return_type', 'args', 'body')

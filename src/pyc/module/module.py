@@ -29,3 +29,6 @@ class Module:
     def core_ast(self):
         print("Converting AST of", self.source)
         return core.convert(self, self.python_ast, self.builtins)
+
+    def __str__(self):
+        return '<Module %s>' % self.name

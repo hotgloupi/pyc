@@ -29,11 +29,14 @@ class Converter(parser_ast.Visitor):
         self.context = None
         self.indent = 0
         self.builtins = builtins
+        namespace = None
         if builtins is not None:
-            self.scope = Scope(builtins.core_ast.scope, '#root')
-        else:
-            self.scope = Scope(None, name = '#root')
-        self.scope['__pyc__'] = internal.intrinsics
+            namespace = builtins.core_ast.scope.namespace
+        self.scope = Scope(
+            parent = None,
+            name = module.name,
+            namespace = namespace
+        )
 
     def visit(self, node):
         self.indent += 1
@@ -72,6 +75,8 @@ class Converter(parser_ast.Visitor):
         return None
 
     def visit_Identifier(self, node):
+        return self.scope[node.name]
+
         return ast.Variable(
             node.loc,
             id = node.name,
@@ -123,10 +128,10 @@ class Converter(parser_ast.Visitor):
                 for arg in args:
                     scope[arg.id] = arg
                 return_type, body = self._visit_function_block(fn.definition.body)
-
+        print(fn, fn.scope.path, fn.scope.absolute_name)
         return ast.Function(
             fn.loc,
-            name = fn.definition.name,
+            name = fn.scope.absolute_name + '.' + fn.definition.name,
             return_type = return_type,
             args = args,
             body = body,
@@ -144,8 +149,10 @@ class Converter(parser_ast.Visitor):
             if arg is None:
                 # XXX use param.default if available
                 raise Exception("Missing parameter '%s'" % param)
+            value = self.visit(arg.value)
+            print("ARG FROM VALUE", value)
             res.append(
-                ast.Variable(arg.loc, param.name, self.visit(arg.value))
+                ast.Variable(arg.loc, param.name, value)
             )
         return res
 
@@ -168,14 +175,20 @@ class Converter(parser_ast.Visitor):
         assert isinstance(var, ast.Variable)
         assert isinstance(type, ts.Type)
         print("CAST", var, "FROM", var.type, "TO", type)
-        return var.ref
+        if var.type == type:
+            return var.ref
+        return ast.Cast(var.loc, var.ref, type)
 
     def visit_ExternFunctionCall(self, node):
         args = []
         for arg, type in zip(node.arguments, node.signature[1:]):
             var = self.scope[arg]
             args.append(
-                ast.Variable(var.loc, '#' + var.id, self._cast(var, type))
+                ast.Variable(
+                    var.loc,
+                    '#' + var.id,
+                    self._cast(var, type)
+                )
             )
         return ast.FunctionCall(
             node.loc,
@@ -190,6 +203,8 @@ class Converter(parser_ast.Visitor):
         )
 
     def visit_BinaryExpression(self, node):
+        args = self._visit_all([node.lhs, node.rhs])
+        print("GOT ARGS", node.lhs, node.rhs, '-_>', *args)
         return ast.PrimaryOperator(
             node.loc,
             op = node.op,
@@ -198,6 +213,9 @@ class Converter(parser_ast.Visitor):
 
     def visit_Number(self, node):
         return ast.LiteralInteger(node.loc, int(node.value))
+
+    def visit_String(self, node):
+        return ast.LiteralString(node.loc, node.value)
 
     def visit_children(self, node: ast.Node):
         raise NotImplementedError(
@@ -215,11 +233,12 @@ class Converter(parser_ast.Visitor):
                 assert len(import_.dotted_name) == 1
                 name = import_.dotted_name[0]
                 self.scope[name] = import_ast.scope[name]
-            return ast.FunctionCall(
-                node.loc,
-                fn = import_ast.entry,
-                args = [],
-            )
+            if import_ast.entry is not None:
+                return ast.FunctionCall(
+                    node.loc,
+                    fn = import_ast.entry,
+                    args = [],
+                )
 
     def visit_PassStatement(self, node):
         pass
@@ -241,6 +260,7 @@ class Converter(parser_ast.Visitor):
             self.visit(parameter.annotation)
             for parameter in node.definition.parameters
         ]
+        print(signature)
 
         body = [
             parser_ast.ReturnStatement(
@@ -270,10 +290,11 @@ class Converter(parser_ast.Visitor):
             node.loc,
             definition = definition,
             specializations = {},
-            scope = Scope(parent = None)
+            scope = Scope(parent = internal.scope)
         )
 
     def visit_DecoratedDefinition(self, node):
+        print("NODE", node.decorator)
         decorator = self.visit(node.decorator)
         print("Decorator", decorator)
         if isinstance(decorator, internal.ExternDecorator):

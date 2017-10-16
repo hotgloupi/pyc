@@ -4,8 +4,13 @@ import os
 from .module import Module
 
 from ..source import Manager as SourceManager
+from ..core import internal
 
 __all__ = ['Manager']
+
+class InternalModule:
+    def __init__(self, module):
+        self.core_ast = module
 
 class Manager:
 
@@ -13,6 +18,7 @@ class Manager:
         self.paths = paths or []
         self.sources = SourceManager()
         self.cache = {}
+        self.internal_module = InternalModule(internal.intrinsics)
 
     def add_path(self, path):
         pass
@@ -31,6 +37,8 @@ class Manager:
 
     def load_absolute(self, module_path, builtins = None):
         name = '.'.join(module_path)
+        if name == '__pyc__':
+            return self.internal_module
         # XXX try cache here
         assert isinstance(module_path, list)
         candidates = [
