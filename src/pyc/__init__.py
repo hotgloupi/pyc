@@ -74,7 +74,7 @@ def main():
         return
 
     if args.core_ast:
-        print(ast.dump(module.core_ast))
+        print(ast.dump(module.core_ast, additional_fields = ['type']))
         return
 
     ir = codegen.compile(module.core_ast, os.path.abspath(args.file[0]))

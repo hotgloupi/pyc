@@ -11,4 +11,14 @@ class Type:
         return hash(self.name)
 
     def __str__(self):
-        return '<Type %s>' % self.name
+        return '<%s %s>' % (self.__class__.__name__, self.name)
+
+
+class App(Type):
+    def __init__(self, parameters_type, return_type):
+        self.name = '(%s) -> %s' % (
+            ', '.join(t.name for t in parameters_type),
+            return_type.name
+        )
+        self.parameters_type = parameters_type
+        self.return_type = return_type

@@ -133,7 +133,7 @@ class Converter(parser_ast.Visitor):
             fn.loc,
             name = fn.scope.absolute_name + '.' + fn.definition.name,
             return_type = return_type,
-            args = args,
+            parameters = [ast.Parameter(arg.loc, arg.id, arg.type) for arg in args],
             body = body,
         )
 
@@ -150,7 +150,6 @@ class Converter(parser_ast.Visitor):
                 # XXX use param.default if available
                 raise Exception("Missing parameter '%s'" % param)
             value = self.visit(arg.value)
-            print("ARG FROM VALUE", value)
             res.append(
                 ast.Variable(arg.loc, param.name, value)
             )
@@ -181,25 +180,23 @@ class Converter(parser_ast.Visitor):
 
     def visit_ExternFunctionCall(self, node):
         args = []
+        params = []
+        print(node)
         for arg, type in zip(node.arguments, node.signature[1:]):
             var = self.scope[arg]
-            args.append(
-                ast.Variable(
-                    var.loc,
-                    '#' + var.id,
-                    self._cast(var, type)
-                )
-            )
+            args.append(self._cast(var, type))
+            print(arg)
+            params.append(ast.Parameter(var.loc, arg, type))
         return ast.FunctionCall(
             node.loc,
             fn = ast.Function(
                 loc = node.loc,
                 name = node.name,
                 return_type = node.signature[0],
-                args = args,
+                parameters = args,
                 body = None,
             ),
-            args = [arg.ref for arg in args]
+            args = args
         )
 
     def visit_BinaryExpression(self, node):
@@ -316,7 +313,7 @@ def convert(module, py_ast: ast.Node, builtins):
         body.loc,
         name = fname,
         return_type = ts.Type('void'),
-        args = [],
+        parameters = [],
         body = body,
     )
     return ast.ModuleEntry(

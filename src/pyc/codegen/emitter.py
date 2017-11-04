@@ -70,6 +70,8 @@ class Emitter:
 
     def _find_function(self, function_node):
         if function_node not in self.functions:
+            # the visit_Function registers itself the node to allow recursive
+            # functions
             self.visit(function_node)
         return self.functions[function_node]
 
@@ -83,7 +85,11 @@ class Emitter:
     def visit_FunctionCall(self, node):
         fn = self._find_function(node.fn)
         args = [self.visit(arg) for arg in node.args]
-        return self.builder.call(fn, args)
+        print("FunctionCall", fn, 'with', *args)
+        print("build it")
+        ret = self.builder.call(fn, args)
+        print("Done")
+        return ret
 
     @contextlib.contextmanager
     def push_fn(self, fn, entry, exit):
@@ -104,7 +110,7 @@ class Emitter:
         assert node not in self.functions
         sig = self.type_factory.function(
             self._make_type(node.return_type),
-            [self._make_type(arg.type) for arg in node.args]
+            [self._make_type(parameter.type) for parameter in node.parameters]
         )
         fn = self.module.add_function(node.name, sig)
         if node.name == 'main': # XXX
@@ -114,13 +120,8 @@ class Emitter:
         self.functions[node] = fn
         void_ret = (node.return_type.name == 'void') # XXX
         with self.push_fn(fn, entry_block, exit_block):
-            for var, param in zip(node.args, fn.params):
-                print(param)
-                self.locals[var.id] = param
-                #self.builder.alloca(
-                #    self._make_type(var.type),
-                #    var.id
-                #)
+            for node_param, llvm_param in zip(node.parameters, fn.params):
+                self.locals[node_param.name] = llvm_param
             if not void_ret:
                 self.locals['#retval'] = self.builder.alloca(
                     self._make_type(node.return_type),
@@ -148,8 +149,8 @@ class Emitter:
         return fn
 
     def visit_Variable(self, node):
+        print(node)
         return self.locals[node.id]
-        print("HO YEAR", node, self.locals[node.id])
         #return self.builder.load(self.locals[node.id], node.id)
 
     def visit_PrimaryOperator(self, node):

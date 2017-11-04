@@ -9,7 +9,13 @@ class Node(parser_ast.Node):
     @property
     def type(self):
         if self.__type is None:
-            return self.make_type()
+            self.__type = self.make_type()
+        return self.__type
+
+    @type.setter
+    def type(self, value):
+        assert value is not None
+        self.__type = value
 
     def make_type(self):
         raise NotImplementedError("Cannot find type for %s" % self)
@@ -17,8 +23,14 @@ class Node(parser_ast.Node):
 class ModuleEntry(Node):
     fields = ('module', 'entry', 'scope')
 
+    def make_type(self):
+        return ts.Type('void')
+
 class Block(Node):
     fields = ('statements', 'scope')
+
+    def make_type(self):
+        return ts.Type('void')
 
 class Variable(Node):
     fields = ('id', 'ref')
@@ -104,7 +116,13 @@ class LiteralString(Node):
         return ts.Type('char_p')
 
 class Function(Node):
-    fields = ('name', 'return_type', 'args', 'body')
+    fields = ('name', 'parameters', 'return_type', 'body')
+
+    def make_type(self):
+        return ts.App([param.type for param in self.parameters], self.return_type)
+
+class Parameter(Node):
+    fields = ('name', 'type')
 
 class FunctionCall(Node):
     fields = ('fn', 'args')

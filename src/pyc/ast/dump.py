@@ -9,8 +9,9 @@ __all__ = ['dump']
 
 class Formatter:
 
-    def __init__(self, indent_str = ' '):
+    def __init__(self, indent_str = ' ', additional_fields = []):
         self.indent_str = ' '
+        self.additional_fields = additional_fields
 
     def __call__(self, node, indent = 0):
         if isinstance(node, str):
@@ -19,7 +20,7 @@ class Formatter:
             cls = node.__class__
             res = cls.kind + '.' + cls.__name__ + ':'
             fields = []
-            for k, v in iter_fields(node):
+            for k, v in iter_fields(node, self.additional_fields):
                 key = k + ':'
                 field = self(v, indent + 1)
                 sep = ' '
@@ -51,7 +52,8 @@ class Formatter:
     def indent(self, str, indent):
         return self.indent_str * indent + str
 
-dump = Formatter()
+def dump(node, **kw):
+    return Formatter(**kw)(node)
 
 def dump2(node: Node, **kw):
     def transform(node):
