@@ -1,3 +1,4 @@
+import logging
 
 from .. import parser
 from ..parser import lexer
@@ -6,6 +7,8 @@ from .. import core
 from ..tools import cached_property
 
 __all__ = ['Module']
+
+log = logging.getLogger(__name__)
 
 class Module:
 
@@ -17,17 +20,17 @@ class Module:
 
     @cached_property
     def tokens(self):
-        #print("Lexing source", self.source)
+        log.info("Lexing source '%s'", self.source)
         return lexer.lex_file_input(self.source.data)
 
     @cached_property
     def python_ast(self):
-        #print("Parsing source", self.source)
+        log.info("Parsing source '%s'", self.source)
         return parser.parse(self.tokens)
 
     @cached_property
     def core_ast(self):
-        print("Converting AST of", self.source)
+        log.info("Converting AST of '%s'", self.source)
         return core.convert(self, self.python_ast, self.builtins)
 
     def __str__(self):

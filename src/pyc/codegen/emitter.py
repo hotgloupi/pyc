@@ -31,6 +31,7 @@ class Emitter:
             'void': self.type_factory.void(),
             'void_p': self.type_factory.void_p(),
             'char_p': self.type_factory.int_p(8),
+            'char': self.type_factory.int(8),
         }
 
     def generate(self, ast_root):
@@ -79,6 +80,12 @@ class Emitter:
     def _make_type(self, type):
         ret = self.types.get(type.name)
         if ret is not None:
+            return ret
+        if isinstance(type, core.ts.Array):
+            ret = self.types[type.name] = self.type_factory.array(
+                self._make_type(type.element_type),
+                type.size
+            )
             return ret
         raise Exception("Unknown type '%s'" % type)
 

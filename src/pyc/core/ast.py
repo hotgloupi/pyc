@@ -6,6 +6,7 @@ class Node(parser_ast.Node):
     kind = 'core'
 
     __type = None
+
     @property
     def type(self):
         if self.__type is None:
@@ -113,7 +114,7 @@ class LiteralString(Node):
     fields = ('value', )
 
     def make_type(self):
-        return ts.Type('char_p')
+        return ts.Array(ts.Type('char'), len(self.value) + 1)
 
 class Function(Node):
     fields = ('name', 'parameters', 'return_type', 'body')

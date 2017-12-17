@@ -1,5 +1,6 @@
 
 import os
+import logging
 
 from .module import Module
 
@@ -7,6 +8,8 @@ from ..source import Manager as SourceManager
 from ..core import internal
 
 __all__ = ['Manager']
+
+log = logging.getLogger(__name__)
 
 class InternalModule:
     def __init__(self, module):
@@ -26,7 +29,7 @@ class Manager:
     def load_from_file(self, path, module_name, builtins = None):
         module = self.cache.get(module_name)
         if module is None:
-            print("loading module", module_name, "from", path)
+            log.info("loading module '%s' from '%s'", module_name, path)
             self.cache[module_name] = module = Module(
                 name = module_name,
                 source = self.sources.load(path),

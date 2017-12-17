@@ -1,4 +1,5 @@
 import contextlib
+import logging
 
 from ..parser import Token
 from .. import ast as parser_ast
@@ -8,6 +9,8 @@ from .scope import Scope
 from . import internal
 
 __all__ = ['convert']
+
+log = logging.getLogger(__name__)
 
 class Context:
 
@@ -48,7 +51,7 @@ class Converter(parser_ast.Visitor):
         return list(filter(None, map(self.visit, elements)))
 
     def debug(self, *args, **kw):
-        print('#' * self.indent, *args, **kw)
+        log.debug('#' * self.indent + ' '.join(map(str, args)))
 
     @contextlib.contextmanager
     def new_scope(self, name = None):
@@ -128,7 +131,6 @@ class Converter(parser_ast.Visitor):
                 for arg in args:
                     scope[arg.id] = arg
                 return_type, body = self._visit_function_block(fn.definition.body)
-        print(fn, fn.scope.path, fn.scope.absolute_name)
         return ast.Function(
             fn.loc,
             name = fn.scope.absolute_name + '.' + fn.definition.name,
@@ -173,7 +175,6 @@ class Converter(parser_ast.Visitor):
     def _cast(self, var, type):
         assert isinstance(var, ast.Variable)
         assert isinstance(type, ts.Type)
-        print("CAST", var, "FROM", var.type, "TO", type)
         if var.type == type:
             return var.ref
         return ast.Cast(var.loc, var.ref, type)
@@ -181,11 +182,9 @@ class Converter(parser_ast.Visitor):
     def visit_ExternFunctionCall(self, node):
         args = []
         params = []
-        print(node)
         for arg, type in zip(node.arguments, node.signature[1:]):
             var = self.scope[arg]
             args.append(self._cast(var, type))
-            print(arg)
             params.append(ast.Parameter(var.loc, arg, type))
         return ast.FunctionCall(
             node.loc,
@@ -201,7 +200,6 @@ class Converter(parser_ast.Visitor):
 
     def visit_BinaryExpression(self, node):
         args = self._visit_all([node.lhs, node.rhs])
-        print("GOT ARGS", node.lhs, node.rhs, '-_>', *args)
         return ast.PrimaryOperator(
             node.loc,
             op = node.op,
@@ -257,7 +255,6 @@ class Converter(parser_ast.Visitor):
             self.visit(parameter.annotation)
             for parameter in node.definition.parameters
         ]
-        print(signature)
 
         body = [
             parser_ast.ReturnStatement(
@@ -291,9 +288,7 @@ class Converter(parser_ast.Visitor):
         )
 
     def visit_DecoratedDefinition(self, node):
-        print("NODE", node.decorator)
         decorator = self.visit(node.decorator)
-        print("Decorator", decorator)
         if isinstance(decorator, internal.ExternDecorator):
             extern = self._make_extern_template(node)
             self.scope[node.definition.name] = extern

@@ -177,6 +177,24 @@ class TypeFactory:
             context = self.context
         )
 
+    def array(self, element_type, size):
+        return Type(
+            ref = self.context.lib.LLVMArrayType(
+                element_type.ref,
+                size
+            ),
+            context = self.context
+        )
+
+    def vector(self, element_type, size):
+        return Type(
+            ref = self.context.lib.LLVMVectorType(
+                element_type.ref,
+                size
+            ),
+            context = self.context
+        )
+
     def void_p(self, address_space = 0):
         return self.pointer(self.int8(), address_space)
 
