@@ -6,6 +6,7 @@ import logging
 from . import ast
 from .module import Manager
 from . import codegen
+from .core.dump import dump as dump_core_lang
 
 FILE = os.path.abspath(__file__)
 FILE_DIR = os.path.dirname(FILE)
@@ -43,8 +44,14 @@ def make_argument_parser():
     )
 
     parser.add_argument(
+        '--core-lang',
+        help = 'Dump the core AST in a human readable C-like format',
+        action = 'store_true',
+    )
+
+    parser.add_argument(
         '--llvm-ir',
-        help = 'Dump the core AST',
+        help = 'Dump LLVM IR',
         action = 'store_true',
     )
 
@@ -95,9 +102,6 @@ def main():
 
     setup_logger(args)
 
-    log.debug("pif")
-    log.info("pif")
-
     file = os.path.abspath(args.file[0])
     dir = os.path.dirname(file)
     manager = Manager(paths = [dir, args.stdlib_dir, args.pyc_dir])
@@ -117,6 +121,10 @@ def main():
             ast.dump(module.core_ast, additional_fields = ['type']),
             file = args.output
         )
+        return
+
+    if args.core_lang:
+        dump_core_lang(module.core_ast, file = args.output)
         return
 
     ir = codegen.compile(module.core_ast, os.path.abspath(args.file[0]))
