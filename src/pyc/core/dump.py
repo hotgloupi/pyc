@@ -31,18 +31,19 @@ class Dump(Visitor):
 
     def writeln(self, *args, **kw):
         kw['end'] = '\n'
-        self.write(*args, kw)
+        self.write(*args, **kw)
         self.should_indent_next = True
 
     def visit(self, node):
-        print("-->", node, getattr(node, 'fields', '(no fields)'))
+        print("//", node, getattr(node, 'fields', '(no fields)'))
         super().visit(node)
 
     def visit_Block(self, node):
-        self.write('//', node.scope)
-        for st in node.statements:
-            self.visit(st)
-            self.writeln()
+        with self._indent():
+            self.writeln('//', node.scope)
+            for st in node.statements:
+                self.visit(st)
+                self.writeln()
 
     def visit_Function(self, node):
         def pretty_param(p):
@@ -52,13 +53,14 @@ class Dump(Visitor):
             'fn', '%s(%s)' % (node.name, params),
             '->', node.return_type.name, '{'
         )
-        with self._indent():
-            self.visit(node.body)
+        if node.body is not None:
+            with self._indent():
+                self.visit(node.body)
         self.writeln('}')
 
     def visit_FunctionCall(self, node):
         if node.fn not in self.seen_functions:
-            self.visit(node.fn)
+            #self.visit(node.fn)
             self.seen_functions.add(node.fn)
         def pretty_arg(arg): return repr(arg.value)
         args = ', '.join(map(pretty_arg, node.args))

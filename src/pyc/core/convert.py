@@ -192,7 +192,7 @@ class Converter(parser_ast.Visitor):
                 loc = node.loc,
                 name = node.name,
                 return_type = node.signature[0],
-                parameters = args,
+                parameters = params,
                 body = None,
             ),
             args = args
@@ -297,7 +297,7 @@ class Converter(parser_ast.Visitor):
 
         return self.visit(node.definition)
 
-def convert(module, py_ast: ast.Node, builtins):
+def convert(module, py_ast: ast.Node, builtins) -> ast.ModuleEntry:
     if module.name == '__main__':
         fname = 'main'
     else:
