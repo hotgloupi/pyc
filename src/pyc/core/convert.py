@@ -1,7 +1,11 @@
+"""
+Convert a python AST to a core AST
+"""
 import contextlib
 import logging
 
 from ..parser import Token
+#from ..module.module import Module
 from .. import ast as parser_ast
 from . import ast
 from . import ts
@@ -13,8 +17,10 @@ __all__ = ['convert']
 log = logging.getLogger(__name__)
 
 class Context:
+    """The context class is used to store a scope and return statements.
+    """
 
-    def __init__(self, scope):
+    def __init__(self, scope : Scope):
         self.scope = scope
         self.return_statements = []
 
@@ -26,8 +32,12 @@ class Context:
         return self.return_statements[0].type
 
 class Converter(parser_ast.Visitor):
+    """Implements the visitor patterns on a python AST.
 
-    def __init__(self, module, builtins):
+    This class will convert a module into a core AST.
+    """
+
+    def __init__(self, module : "Module", builtins : "Module"):
         self.module = module
         self.context = None
         self.indent = 0
@@ -172,7 +182,7 @@ class Converter(parser_ast.Visitor):
             args = arg_values,
         )
 
-    def _cast(self, var, type):
+    def _cast(self, var : ast.Variable, type : ts.Type):
         assert isinstance(var, ast.Variable)
         assert isinstance(type, ts.Type)
         if var.type == type:
@@ -293,11 +303,11 @@ class Converter(parser_ast.Visitor):
             extern = self._make_extern_template(node)
             self.scope[node.definition.name] = extern
             return None
-        assert False
+        raise NotImplementedError()
 
         return self.visit(node.definition)
 
-def convert(module, py_ast: ast.Node, builtins) -> ast.ModuleEntry:
+def convert(module : "Module", py_ast: ast.Node, builtins) -> ast.ModuleEntry:
     if module.name == '__main__':
         fname = 'main'
     else:

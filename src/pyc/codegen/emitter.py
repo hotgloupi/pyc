@@ -1,9 +1,12 @@
-from .. import llvm
-
-from .. import core
-
+import logging
 import contextlib
 from collections import namedtuple
+
+from .. import llvm
+from .. import core
+
+
+LOG = logging.getLogger(__name__)
 
 __all__ = [
     'Emitter',
@@ -18,8 +21,10 @@ class FunctionContext:
         self.locals = {}
 
 class Emitter:
+    """Class responsible for emitting LLVM IR from a core AST node.
+    """
 
-    def __init__(self, ctx, mod):
+    def __init__(self, ctx : llvm.Context, mod : llvm.Module):
         self.ctx = ctx
         self.module = mod
         self.type_factory = llvm.TypeFactory(self.ctx)
@@ -183,7 +188,6 @@ class Emitter:
         )
 
     def visit_Cast(self, node):
-        print('$'*80, node)
         to_type = node.to_type
         value = self.visit(node.value)
 

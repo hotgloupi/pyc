@@ -1,35 +1,46 @@
-
+"""Module manager class
+"""
 import os
 import logging
 
-from .module import Module
+from .. import source
+from .. import core
 
-from ..source import Manager as SourceManager
-from ..core import internal
+from .module import Module, InternalModule
 
 __all__ = ['Manager']
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
-class InternalModule:
-    def __init__(self, module):
-        self.core_ast = module
 
 class Manager:
+    """A module manager is responsible for loading python modules from file
+    or from name. It also provides basic caching so that modules are not loaded
+    more than once.
+    """
 
     def __init__(self, paths = None):
         self.paths = paths or []
-        self.sources = SourceManager()
+        self.sources = source.Manager()
         self.cache = {}
-        self.internal_module = InternalModule(internal.intrinsics)
+        self.internal_module = InternalModule(node=core.internal.intrinsics, manager=self)
 
-    def add_path(self, path):
-        pass
+    def load_from_file(self,
+                       path : str,
+                       module_name : str,
+                       builtins : Module = None) -> Module:
+        """Load a module from path
 
-    def load_from_file(self, path, module_name, builtins = None):
+        Args:
+            path: Path to the python file
+            module_name: the name of the module
+            builtins: A builtins module
+
+        Returns: The loaded module
+        """
         module = self.cache.get(module_name)
         if module is None:
-            log.info("loading module '%s' from '%s'", module_name, path)
+            LOG.info("loading module '%s' from '%s'", module_name, path)
             self.cache[module_name] = module = Module(
                 name = module_name,
                 source = self.sources.load(path),
@@ -38,7 +49,17 @@ class Manager:
             )
         return module
 
-    def load_absolute(self, module_path, builtins = None):
+    def load_absolute(self,
+                      module_path : list,
+                      builtins : Module = None) -> Module:
+        """Load a module from absolute name
+
+        Args:
+            module_path: A list of string representing the module full name
+            builtins: A builtins module
+
+        Returns: The loaded module
+        """
         name = '.'.join(module_path)
         if name == '__pyc__':
             return self.internal_module
@@ -55,4 +76,4 @@ class Manager:
         raise Exception("Couldn't import '%s'" % name)
 
     def load_relative(self, module_name, directory):
-        pass
+        raise NotImplementedError()
